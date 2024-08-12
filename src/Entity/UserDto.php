@@ -37,7 +37,6 @@ class UserDto{
    )]
    private ?string $calName;
 
-   
 
 
    /**
