@@ -10,15 +10,20 @@ class EventDto{
 
     private string $timeZoneID = 'Europe/Berlin';
 
+    #[Assert\DateTime]
     #[Assert\NotNull]
     #[Assert\NotBlank]
-    #[Assert\DateTime]
     private string $dateStart;
 
+    #[Assert\DateTime]
     #[Assert\NotNull]
     #[Assert\NotBlank]
-    #[Assert\DateTime]
     private string $dateEnd;
+
+    #[Assert\DateTime]
+    #[Assert\NotNull]
+    #[Assert\NotBlank]
+    private string $createAt;
     
     #[Assert\NotNull]
     #[Assert\NotBlank]
@@ -28,32 +33,31 @@ class EventDto{
     #[Assert\NotBlank]
     #[Assert\Length(
         min: 4, max: 255,
-        minMessage: 'Your summary must be at least {{ limit }} characters long',
-        maxMessage: 'Your summary cannot be longer than {{ limit }} characters',
+        minMessage: 'Summary must be at least {{ limit }} characters long',
+        maxMessage: 'Summary cannot be longer than {{ limit }} characters',
     )]
     private string $summary;
 
-    #[Assert\NotNull]
-    #[Assert\NotBlank]
-    #[Assert\DateTime]
-    private string $createAt;
-
-
+    /**
+     * @return string
+     */
     public function getDateStart(): string
     {
         return $this->dateStart;
     }
 
+    /**
+     * @param string $dateStart
+     * @return self
+     */
     public function setDateStart(string $dateStart): self
     {
-        $this->dateStart = $this->formatDate($dateStart);
+        $this->dateStart = $dateStart;
 
         return $this;
     }
 
     /**
-     * Get the value of dateEnd
-     *
      * @return string
      */
     public function getDateEnd(): string
@@ -61,16 +65,18 @@ class EventDto{
         return $this->dateEnd;
     }
 
+    /**
+     * @param string $dateEnd
+     * @return self
+     */
     public function setDateEnd(string $dateEnd): self
     {
-        $this->dateEnd = $this->formatDate($dateEnd);
+        $this->dateEnd = $dateEnd;
 
         return $this;
     }
 
     /**
-     * Get the value of uid
-     *
      * @return string
      */
     public function getUid(): string
@@ -79,7 +85,7 @@ class EventDto{
     }
 
     /**
-     * Set the value of uid
+     * Set the value of event uid
      *
      * @param string $uid
      *
@@ -119,23 +125,25 @@ class EventDto{
     /**
      * Get the value of createAt
      *
-     * @return string
+     * @return DateTime
      */
     public function getCreateAt(): string
     {
         return $this->createAt;
     }
 
+    /**
+     * @param string $createAt
+     * @return self
+     */
     public function setCreateAt(string $createAt): self
     {
-        $this->createAt = $this->formatDate($createAt);
+        $this->createAt = $createAt;
 
         return $this;
     }
 
     /**
-     * Get the value of timeZoneID
-     *
      * @return string
      */
     public function getTimeZoneID(): string
@@ -157,8 +165,15 @@ class EventDto{
         return $this;
     }
 
+    /**
+     * @return string
+     */
     public function __toString(): string
     {
+        $start = self::formatDate($this->dateStart);
+        $end = self::formatDate($this->dateEnd);
+        $createAt = self::formatDate($this->createAt);
+
         return <<<EOD
         BEGIN:VCALENDAR
         PRODID:-//SomeExampleStuff//EN
@@ -170,25 +185,25 @@ class EventDto{
         TZOFFSETFROM:+0100
         TZOFFSETTO:+0200
         TZNAME:CEST
-        DTSTART:$this->dateStart
+        DTSTART:$start
         RRULE:FREQ=YEARLY;BYDAY=-1SU;BYMONTH=3
         END:DAYLIGHT
         BEGIN:STANDARD
         TZOFFSETFROM:+0200
         TZOFFSETTO:+0100
         TZNAME:CET
-        DTSTART:$this->dateStart
+        DTSTART:$start
         RRULE:FREQ=YEARLY;BYDAY=-1SU;BYMONTH=10
         END:STANDARD
         END:VTIMEZONE
         BEGIN:VEVENT
-        CREATED:$this->createAt
+        CREATED:$createAt
         LAST-MODIFIED:20140403T091044Z
         DTSTAMP:20140416T091044Z
         UID:$this->uid
         SUMMARY:$this->summary
-        DTSTART;TZID=$this->timeZoneID:$this->dateStart
-        DTEND;TZID=$this->timeZoneID:$this->dateEnd
+        DTSTART;TZID=$this->timeZoneID:$start
+        DTEND;TZID=$this->timeZoneID:$end
         LOCATION:ExamplePlace2
         DESCRIPTION:$this->summary
         END:VEVENT
@@ -196,7 +211,7 @@ class EventDto{
         EOD;
     }
 
-    private function formatDate(string $mDate){
+    private static function formatDate(string $mDate){
 
         $date = new DateTime($mDate);
 

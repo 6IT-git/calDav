@@ -6,6 +6,15 @@
 parameters:
     jwt.api.key: "%env(JWT_SECRET_KEY)%"
     jwt.encoder: "%env(JWT_ENCODER)%"
+    key.cloak.url: "%env(KEY_CLOAK_URL)%"
+    kafka.url: "%env(KAFKA_URL)%"
+    baikal.srv.url: "%env(BAIKAL_SRV_URL)%"
+    cloak.grant.type: "%env(CLOAK_GRANT_TYPE)%"
+    cloak.srv.url: "%env(CLOAK_SCOPE)%"
+    cloak.username: "%env(CLOAK_USERNAME)%"
+    cloak.password: "%env(CLOAK_PASSWORD)%"
+    cloak.client.id: "%env(CLOAK_CLIENT_ID)%"
+    cloak.client.secret: "%env(CLOAK_CLIENT_SECRET)%"
 
 services:
     # default configuration for services in *this* file

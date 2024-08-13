@@ -2,24 +2,22 @@
 
 namespace App\Controller;
 
-use App\Entity\EventDto;
-use App\Security\User;
 use Firebase\JWT\JWT;
-use Firebase\JWT\Key;
+use App\Entity\User;
+use App\Entity\EventDto;
+use App\HttpTools;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\Serializer\SerializerInterface;
+use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
-use Symfony\Component\Security\Http\Attribute\IsGranted;
 
-class ApiController extends AbstractController
+
+class BasicCalDAVController extends AbstractController
 {
-
-    const JWT_SECRET_KEY = 'ginov';
-
 
     #[IsGranted('ROLE_USER', message:'Acces denied', statusCode: Response::HTTP_UNAUTHORIZED)]
     #[Route('/events', name: 'baikal_events', methods: ['GET'])]
@@ -29,7 +27,7 @@ class ApiController extends AbstractController
         $user = $this->getUser();
 
         $client = $this->doConnect(
-            'http://localhost:8001/cal.php/calendars/'.$user->getUsername().'/'.$user->getCalendar(),
+            $this->getParameter('baikal.srv.url').$user->getUsername().'/'.$user->getCalendar(),
             $user->getUsername(), 
             $user->getPassword
         );
@@ -50,7 +48,7 @@ class ApiController extends AbstractController
         $user = $this->getUser();
 
         $client = $this->doConnect(
-            'http://localhost:8001/cal.php/calendars/'.$user->getUsername().'/'.$user->getCalendar(),
+            $this->getParameter('baikal.srv.url').$user->getUsername().'/'.$user->getCalendar(),
             $user->getUsername(), 
             $user->getPassword
         );
@@ -68,22 +66,23 @@ class ApiController extends AbstractController
     #[Route('/add', 'baikal_add', methods: ['POST'])]
     public function addEvent(Request $request, ValidatorInterface $validator, SerializerInterface $serializer): JsonResponse
     {
-        $event = $request->request->get('event', '');
         $calID = $request->request->get('calID', '');
 
         $event = (new EventDto())
             ->setUid(md5(time()))
-            ->setCreateAt($request->request->get('date_start', 'now'))
+            ->setCreateAt($request->request->get('create_at', 'now'))
             ->setDateStart($request->request->get('date_start', ''))
             ->setDateEnd($request->request->get('date_end', ''))
             ->setSummary($request->request->get('summary', ''))
             ->setTimeZoneID($request->request->get('timezone', 'Europe/Berlin'));
 
-
         $errors = $validator->validate($event);
         if (count($errors) > 0) {
             return $this->json($serializer->serialize($errors, 'json'), Response::HTTP_BAD_REQUEST);
         }
+
+        if($event->getDateEnd() <= $event->getDateStart())
+            return $this->json('Invalide date', Response::HTTP_BAD_REQUEST);
 
         //normalement il faut aussi tester le format
         if(strlen(trim($calID)) == 0) 
@@ -93,9 +92,9 @@ class ApiController extends AbstractController
         $user = $this->getUser();
 
         $client = $this->doConnect(
-            'http://localhost:8001/cal.php/calendars/'.$user->getUsername().'/'.$user->getCalendar(),
+            $this->getParameter('baikal.srv.url').$user->getUsername().'/'.$user->getCalCollectionName(),
             $user->getUsername(), 
-            $user->getPassword
+            $user->getPassword()
         );        
 
         $arrayOfCalendars = $client->findCalendars();
@@ -104,6 +103,21 @@ class ApiController extends AbstractController
 
         //add event
         $newEventOnServer = $client->create($event);
+
+        // get kafka api token
+        $response = (new HttpTools($this->getParameter('key.cloak.url')))
+            ->post('/realms/nest-example/protocol/openid-connect/token', [
+                'grant_type'=>'password', 
+                'scope'=>'openid', 
+                'username'=>'user', 
+                'password'=>'user', 
+                'client_id'=>'nest-api', 
+                'client_secret'=>'05c1ff5e-f9ba-4622-98e3-c4c9d280546e'
+            ])
+            ->json();
+        dd($response);
+
+        // add kafka topic
 
         return $this->json(
             ['event' => $newEventOnServer, 'token' => $user->getUserIdentifier()], 
@@ -117,10 +131,6 @@ class ApiController extends AbstractController
         ValidatorInterface $validator,
         SerializerInterface $serializer
     ): JsonResponse {
-        /*$userDto = (new UserDto())
-            ->setUsername($request->get('username', ''))
-            ->setPassword($request->get('password', ''))
-            ->setCalName($request->get('calName', ''));*/
         
         $userDto = (new User())
             ->setUsername($request->get('username', ''))
@@ -135,7 +145,7 @@ class ApiController extends AbstractController
 
         // get calDAV client
         $client = $this->doConnect(
-            'http://localhost:8001/cal.php/calendars/'.$userDto->getUsername().'/'.$userDto->getCalCollectionName(),
+            $this->getParameter('baikal.srv.url').$userDto->getUsername().'/'.$userDto->getCalCollectionName(),
             $userDto->getUsername(),
             $userDto->getPassword()
         );
@@ -164,22 +174,4 @@ class ApiController extends AbstractController
         return $client;
     }
 
-    //*********************************************
-    //**** A DELETE ABSOLUMENT ALERT CODE MERDIK */
-    //*******************************************
-    private function checkToken(Request $request):array{
-        
-        if(!$request->headers->has('Authorization') || !str_contains($request->headers->get('Authorization'), 'Bearer ')){
-            // return $this->json(['Access denied'], Response::HTTP_UNAUTHORIZED);
-            throw new \Exception('Access denied');
-        }
-        $jwt = str_replace('Bearer ', '', $request->headers->get('Authorization'));
-
-        $decoded = JWT::decode($jwt, new Key(ApiController::JWT_SECRET_KEY, 'HS256'));
-
-        return [$decoded, $jwt];
-    }
-    //*********************************************
-    //**** A DELETE ABSOLUMENT ALERT CODE MERDIK */
-    //*******************************************
 }
