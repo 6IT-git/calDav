@@ -3,7 +3,7 @@
 namespace App\Security;
 
 use Exception;
-use App\Entity\User;
+use App\Security\User;
 use Firebase\JWT\JWT;
 use Firebase\JWT\Key;
 use Symfony\Component\Security\Core\User\UserInterface;

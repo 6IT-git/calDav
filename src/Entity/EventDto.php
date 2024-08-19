@@ -7,23 +7,19 @@ use Symfony\Component\Validator\Constraints as Assert;
 
 class EventDto{
 
+    const DEFAULT_TIME_ZONE = 'Europe/Berlin';
 
-    private string $timeZoneID = 'Europe/Berlin';
+    private string $timeZoneID;
 
-    #[Assert\DateTime]
     #[Assert\NotNull]
     #[Assert\NotBlank]
+    #[Assert\DateTime]
     private string $dateStart;
 
-    #[Assert\DateTime]
     #[Assert\NotNull]
     #[Assert\NotBlank]
+    #[Assert\DateTime]
     private string $dateEnd;
-
-    #[Assert\DateTime]
-    #[Assert\NotNull]
-    #[Assert\NotBlank]
-    private string $createAt;
     
     #[Assert\NotNull]
     #[Assert\NotBlank]
@@ -37,6 +33,19 @@ class EventDto{
         maxMessage: 'Summary cannot be longer than {{ limit }} characters',
     )]
     private string $summary;
+
+    #[Assert\NotNull]
+    #[Assert\NotBlank]
+    #[Assert\DateTime]
+    private string $createAt;
+    
+
+    public function __construct()
+    {
+        $this->createAt = (new DateTime())->format('Y-m-d H:i:s');
+        $this->timeZoneID = self::DEFAULT_TIME_ZONE;
+        $this->uid = md5(time());
+    }
 
     /**
      * @return string
@@ -58,6 +67,8 @@ class EventDto{
     }
 
     /**
+     * Get the value of dateEnd
+     *
      * @return string
      */
     public function getDateEnd(): string
@@ -125,7 +136,7 @@ class EventDto{
     /**
      * Get the value of createAt
      *
-     * @return DateTime
+     * @return string
      */
     public function getCreateAt(): string
     {
@@ -133,10 +144,12 @@ class EventDto{
     }
 
     /**
-     * @param string $createAt
+     * Set event created date
+     *
+     * @param string|null $createAt
      * @return self
      */
-    public function setCreateAt(string $createAt): self
+    public function setCreateAt(?string $createAt): self
     {
         $this->createAt = $createAt;
 
@@ -144,6 +157,7 @@ class EventDto{
     }
 
     /**
+     * Get event timezone
      * @return string
      */
     public function getTimeZoneID(): string
@@ -211,7 +225,7 @@ class EventDto{
         EOD;
     }
 
-    private static function formatDate(string $mDate){
+    public static function formatDate(string $mDate){
 
         $date = new DateTime($mDate);
 

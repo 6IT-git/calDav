@@ -8,17 +8,18 @@ class HttpTools
 {
 
     private string $url;
-    private $response;
+    public $response;
 
-    public function __construct(string $url)
+    public function __construct(string $baseUrl)
     {
-        $this->url = $url;
+        $this->url = $baseUrl;
     }
 
     public function get(string $endpoint, array $params = [], array $headers = []):self
     {
+        $queryString = $params ? '?'.http_build_query($params): '';
         $client = new Client([
-            'base_uri' => $this->url,
+            'base_uri' => $this->url.$queryString,
             'verify' => false
         ]);
         $this->response = $client->request('GET', $endpoint, [

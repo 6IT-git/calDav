@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Entity;
+namespace App\Security;
 
 use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
 use Symfony\Component\Security\Core\User\UserInterface;
@@ -32,12 +32,19 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
      */
     private string $apiToken;
 
+    /**
+     * @return string|null
+     */
     public function getUsername(): ?string
     {
         return $this->username;
     }
 
-    public function setUsername(string $username): static
+    /**
+     * @param string|null $username
+     * @return static
+     */
+    public function setUsername(?string $username): static
     {
         $this->username = $username;
 
@@ -86,7 +93,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         return $this->password;
     }
 
-    public function setPassword(string $password): static
+    public function setPassword(?string $password): static
     {
         $this->password = $password;
 
@@ -116,7 +123,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
      * @param  string  $apiToken
      * @return  self
      */ 
-    public function setApiToken(string $apiToken):self
+    public function setApiToken(?string $apiToken):self
     {
         $this->apiToken = $apiToken;
 
@@ -136,11 +143,10 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     /**
      * Set the name of user calendar collection
      *
-     * @param  string  $calCollectionName  The name of user calendar collection
-     *
-     * @return  self
-     */ 
-    public function setCalCollectionName(string $calCollectionName):self
+     * @param string|null $calCollectionName
+     * @return self
+     */
+    public function setCalCollectionName(?string $calCollectionName):self
     {
         $this->calCollectionName = $calCollectionName;
 
