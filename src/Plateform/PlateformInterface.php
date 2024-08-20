@@ -1,6 +1,6 @@
 <?php
 
-namespace App;
+namespace App\Plateform;
 
 use App\Entity\EventDto;
 

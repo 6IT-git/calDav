@@ -1,32 +1,35 @@
 <?php
 
-namespace App;
+namespace App\Plateform\Plateforms;
 
+use App\Security\User;
+use App\Entity\userDto;
 use SimpleCalDAVClient;
 use App\Entity\EventDto;
-use App\PlateformInterface;
+use App\Plateform\Plateform;
+use App\Plateform\PlateformInterface;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
 
-class Baikal implements PlateformInterface{
-
-    const SRV_URL = 'http://localhost:8001/cal.php/calendars/';
+class Baikal extends Plateform{
 
     /** @var SimpleCalDAVClient */
     private $client;
 
-    public function __construct(string $username, string $password){
-        $this->client = (new SimpleCalDAVClient())->connect(self::SRV_URL, $username, $password);
+    public function __construct(ParameterBagInterface $parameter){
+        $this->srvUrl = $parameter->get('baikal.srv.url');
     }
 
-    private function doConnect(string $username, string $password): SimpleCalDAVClient
+    public function login(Request $request):User
     {
-        $client = new SimpleCalDAVClient();
-        $client->connect(self::SRV_URL, $username, $password);
-        return $client;
-    }
+        $userDto = (new User())
+            ->setUsername($request->request->get('username'))
+            ->setPassword($request->request->get('password'))
+            ->setCalCollectionName($request->request->get('cal_name'));
+        
+        $this->client = (new SimpleCalDAVClient())->connect($this->srvUrl, $userDto->getUsername(), $userDto->getPassword());
 
-    public function login(string $username, string $password):bool
-    {
-        return true;
+        return $userDto;
     }
 
     public function addEvent(string $calID, EventDto $event):string{

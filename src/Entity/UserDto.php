@@ -4,7 +4,7 @@ namespace App\Entity;
 
 use Symfony\Component\Validator\Constraints as Assert;
 
-class userDto{
+class UserDto{
 
     #[Assert\NotNull]
     #[Assert\NotBlank]

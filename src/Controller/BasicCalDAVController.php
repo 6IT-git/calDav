@@ -49,7 +49,7 @@ class BasicCalDAVController extends AbstractController
         if ($event->getDateEnd() <= $event->getDateStart())
             return $this->json('Invalide date', Response::HTTP_BAD_REQUEST);
 
-        // Get all events for baikal ------------------------
+        // Get all events for baikal ---------------------
         $client = $this->doConnect(
             $this->getParameter('baikal.srv.url') . $user->getUsername() . '/' . $user->getCalCollectionName(),
             $user->getUsername(),
@@ -64,7 +64,7 @@ class BasicCalDAVController extends AbstractController
             EventDto::formatDate($event->getDateStart()),
             EventDto::formatDate($event->getDateEnd())
         );
-        //---------------------------------------------------
+        //-------------------------------------------------
 
         return $this->json([
             'cal_id' => $calID,
@@ -124,7 +124,7 @@ class BasicCalDAVController extends AbstractController
         /** @var App\Security\User */
         $user = $this->getUser();
 
-        // add event for baikal ------------
+        // add event for baikal ------------------------
         $client = $this->doConnect(
             $this->getParameter('baikal.srv.url') . $user->getUsername() . '/' . $user->getCalCollectionName(),
             $user->getUsername(),
@@ -134,7 +134,7 @@ class BasicCalDAVController extends AbstractController
         $client->setCalendar($arrayOfCalendars[$calID]);
         //add event
         $newEventOnServer = $client->create($event);
-        //----------------------------------
+        //----------------------------------------------
 
         // add kafka topic
         // $kafka = (new Kafka())->send('Enqueue bundle test 1');
