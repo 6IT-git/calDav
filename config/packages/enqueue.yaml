@@ -3,3 +3,6 @@ enqueue:
     transport:
       dsn: "kafka://ec2-13-51-154-148.eu-north-1.compute.amazonaws.com:29092"
     client: ~
+
+
+

@@ -52,7 +52,7 @@ class GoogleCalDAVController extends AbstractController
       return $this->json($json);
    }
 
-   #[Route('/google/login', name: 'google_calendars', methods: ['POST'])]
+   #[Route('/google/login', name: 'google_login', methods: ['POST'])]
    public function login(Request $request): JsonResponse
    {
       $user = (new \App\Security\User())
@@ -63,15 +63,15 @@ class GoogleCalDAVController extends AbstractController
       $jwt = JwtTool::encode($this->getParameter('jwt.api.key'), $user);
 
       // Get all calandars on server
-      $calendars = (new HttpTools('https://www.googleapis.com/calendar/v3'))
-         ->get('/users/me/calendarList', [], [
+      $calendars = (new HttpTools('https://www.googleapis.com/calendar/v3/'))
+         ->get('users/me/calendarList', [], [
             'Authorization' => "Bearer " . $user->getPassword()
          ])
          ->json();
 
       return $this->json([
-         'calendars' => $calendars,
-         'token' => $jwt
+         'token' => $jwt,
+         'calendars' => $calendars
       ], Response::HTTP_OK);
    }
 
@@ -82,13 +82,13 @@ class GoogleCalDAVController extends AbstractController
       /** @var App\Security\User */
       $user = $this->getUser();
 
-      $calendars = (new HttpTools('https://www.googleapis.com/calendar/v3'))
-         ->get('/users/me/calendarList', [], [
-            'Authorization' => "Bearer " . $user->password
+      $calendars = (new HttpTools('https://www.googleapis.com/calendar/v3/'))
+         ->get('users/me/calendarList', [], [
+            'Authorization' => "Bearer " . $user->getPassword()
          ])
          ->json();
 
-      return $this->json(compact($calendars), Response::HTTP_OK);
+      return $this->json(['calendar' => $calendars], Response::HTTP_OK);
    }
 
    #[IsGranted('ROLE_USER', message: 'Acces denied', statusCode: Response::HTTP_UNAUTHORIZED)]
@@ -98,12 +98,12 @@ class GoogleCalDAVController extends AbstractController
       /** @var App\Security\User */
       $user = $this->getUser();
 
-      $events = (new HttpTools('https://www.googleapis.com/calendar/v3'))
-         ->get("/calendars/$calID/events", [], [
-            'Authorization' => "Bearer " . $user->password
+      $events = (new HttpTools('https://www.googleapis.com/calendar/v3/'))
+         ->get("calendars/$calID/events", [], [
+            'Authorization' => "Bearer " . $user->getPassword()
          ])
          ->json();
 
-      return $this->json(compact($events), Response::HTTP_OK);
+      return $this->json(['events' => $events], Response::HTTP_OK);
    }
 }

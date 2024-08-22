@@ -1,51 +1,76 @@
-# syntax=docker/dockerfile:1.4
+# Utilise l'image de base PHP 8.2 en mode CLI
+FROM php:8.2-apache
 
-# Stage 1: Composer installation
-FROM composer:lts as deps
+# Définit le répertoire de travail par défaut à /var/www/html/
 WORKDIR /var/www/html/calDAV
 
-# Copy composer.json and composer.lock before running composer install
-COPY composer.json composer.lock ./
+# Met à jour les paquets et installe les dépendances nécessaires sans les recommandations supplémentaires
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+    locales apt-utils git libicu-dev g++ libpng-dev \
+    libxml2-dev libzip-dev libonig-dev libxslt-dev unzip libpq-dev nodejs npm wget \
+    apt-transport-https lsb-release ca-certificates librdkafka-dev
 
-# Install symfony/runtime
-# RUN composer require symfony/runtime
+# Configure les locales pour l'anglais et le français
+RUN echo "en_US.UTF-8 UTF-8" > /etc/locale.gen \
+    && echo "fr_FR.UTF-8 UTF-8" >> /etc/locale.gen \
+    && locale-gen
+
+# Télécharge et installe Composer, un gestionnaire de dépendances pour PHP
+RUN curl -sS https://getcomposer.org/installer | php -- \
+    && mv composer.phar /usr/local/bin/composer
+
+# Installe l'extension rdkafka
+RUN pecl install rdkafka && docker-php-ext-enable rdkafka
+
+# Définir la variable d'environnement pour permettre l'exécution des plugins Composer en tant que super utilisateur
+ENV COMPOSER_ALLOW_SUPERUSER=1
+
+# Installer le plugin enqueue/rdkafka
+RUN composer require enqueue/rdkafka
+
+# Télécharge et installe l'outil en ligne de commande Symfony
+RUN curl -sS https://get.symfony.com/cli/installer | bash \
+    && mv /root/.symfony5/bin/symfony /usr/local/bin
+
+# Configure et installe plusieurs extensions PHP nécessaires
+RUN docker-php-ext-configure intl \
+    && docker-php-ext-install pdo pdo_mysql \
+    pdo_pgsql opcache intl zip calendar dom mbstring gd xsl \
+    && mv "$PHP_INI_DIR/php.ini-production" "$PHP_INI_DIR/php.ini"
+
+# Installe et active l'extension APCu pour le cache utilisateur
+RUN pecl install apcu && docker-php-ext-enable apcu
+
+# Installe Yarn, un gestionnaire de paquets JavaScript
+# RUN npm install --global yarn
+
+COPY . .
 
 # Run Composer install, ignoring the missing extension requirement temporarily
-# RUN --mount=type=cache,target=/root/.composer/cache \
-    # composer install --no-dev --no-interaction --no-scripts --ignore-platform-req=ext-rdkafka
+RUN composer install --no-dev --no-interaction --no-scripts
 
-# Stage 2: PHP 8.1 with Apache, Kafka extension, and URL rewrite enabled
-FROM php:8.1-apache as final
-
-# Set working directory
-WORKDIR /var/www/html/calDAV
-
-# Copy Composer from the deps stage
-COPY --from=deps /usr/bin/composer /usr/bin/composer
-
-# Install necessary PHP extensions
-RUN apt-get update && apt-get install -y libzstd-dev liblz4-dev && \
-    docker-php-ext-install pdo pdo_mysql && \
-    mv "$PHP_INI_DIR/php.ini-production" "$PHP_INI_DIR/php.ini"
+# Configure les informations utilisateur pour Git
+RUN git config --global user.email "you@example.com" \
+    && git config --global user.name "Your Name"
 
 # Enable Apache mod_rewrite
 RUN a2enmod rewrite
 
-# Copy Composer dependencies and application source code
-# COPY --from=deps /var/www/html/calDAV/vendor/ ./vendor
-COPY . .
-
 # Set the appropriate permissions and user
-# RUN chown -R www-data:www-data /var/www/html/calDAV
+RUN chown -R www-data:www-data /var/www/html/calDAV
 
 # Change to www-data user
-# USER www-data
-
-# Run Composer scripts now that all files are in place
-# RUN composer dump-autoload --optimize && php bin/console cache:clear
+USER www-data
 
 # Expose port 80
 EXPOSE 80
 
-# Optionally, you can add a HEALTHCHECK here
-# HEALTHCHECK CMD curl --fail http://localhost/ || exit 1
+# Garde le conteneur en cours d'exécution en attendant
+# CMD tail -f /dev/null
+
+# Démarre Apache dans le conteneur
+CMD ["apache2-foreground"]
+
+# Définit le répertoire de travail par défaut à /var/www/html/
+# WORKDIR /var/www/html/calDAV

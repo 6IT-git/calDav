@@ -106,8 +106,9 @@ class BasicCalDAVController extends AbstractController
         SerializerInterface $serializer,
         ProducerInterface $producer
     ): JsonResponse {
+
         $event = (new EventDto())
-            ->setUid(md5(time()))
+            ->setUid('ginov_event@'.md5(time()))
             ->setDateStart($request->request->get('date_start'))
             ->setDateEnd($request->request->get('date_end'))
             ->setSummary($request->request->get('summary', ''))
@@ -142,6 +143,8 @@ class BasicCalDAVController extends AbstractController
 
         // send command to ONE consumer
         // $producer->sendCommand('event_processor', 'Something has happened');
+
+        // dd($newEventOnServer);
 
         return $this->json([
             'cal_id' => $calID,

@@ -53,7 +53,7 @@ class ApiController extends AbstractController
         /**  @var App\PlateformInterface */
         $plateformClass = new $classname($user->getUsername(), $user->getPassword());
 
-        if ($plateformClass instanceof PlateformInterface) {
+        if ($plateformClass instanceof Plateform) {
             throw new \Exception('plateform error');
         }
 
@@ -65,14 +65,14 @@ class ApiController extends AbstractController
     }
 
     #[IsGranted('ROLE_USER', message: 'Acces denied', statusCode: Response::HTTP_UNAUTHORIZED)]
-    #[Route('/events/{calID}', name: 'api_events', methods: ['POST'])]
+    #[Route('/caldav/{plateform}/events/{calID}', name: 'api_events', methods: ['POST'])]
     public function getEvents(): JsonResponse
     {
         return $this->json([], Response::HTTP_OK);
     }
 
     #[IsGranted('ROLE_USER', message: 'access denied', statusCode: Response::HTTP_UNAUTHORIZED)]
-    #[Route('/add/{calID}', 'api_add', methods: ['POST'])]
+    #[Route('/caldav/{plateform}/add/{calID}', 'api_add', methods: ['POST'])]
     public function addEvent(): JsonResponse
     {
         return $this->json([], Response::HTTP_CREATED);

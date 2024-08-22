@@ -17,7 +17,7 @@ class Google extends Plateform
     private string $token;
 
     public function __construct(ParameterBagInterface $parameter){
-        $this->srvUrl = $parameter->get('baikal.srv.url');
+        $this->srvUrl = $parameter->get('google.srv.url');
     }
 
     public function login(Request $request): User
@@ -39,7 +39,7 @@ class Google extends Plateform
      */
     public function getCalendars(): array
     {
-        $calendars = (new HttpTools('https://www.googleapis.com/calendar/v3'))
+        $calendars = (new HttpTools($this->srvUrl))
         ->get('/users/me/calendarList', [], [
            'Authorization' => "Bearer " . $this->token
         ])
@@ -57,6 +57,11 @@ class Google extends Plateform
      */
     public function getEvents(string $idCal, EventDto $event): array
     {
+        $events = (new HttpTools($this->srvUrl))
+           ->get("/calendars/$idCal/events", [], [
+              'Authorization' => "Bearer " . $this->token
+           ])
+           ->json();
         return [];
     }
 
