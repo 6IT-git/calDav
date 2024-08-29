@@ -48,7 +48,7 @@ class HttpTools
     public function postJson(string $endpoint, array $payload = [], array $headers = []):self
     {
 
-        /* $client = new Client([
+        $client = new Client([
             'base_uri' => $this->url,
             'verify' => false
         ]);
@@ -56,17 +56,7 @@ class HttpTools
         $this->response = $client->request('POST', $endpoint, [
             'headers' => $headers,
             'json' => $payload
-        ]); */
-
-
-        $client = new Client([
-            'verify' => false
-        ]);
-
-        $this->response = $client->post('https://apitest.viabber.com:8003/api/notification', [
-            'json' => $payload,
-            'headers' => $headers,
-        ]);        
+        ]);    
 
         return $this;
     }

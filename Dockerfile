@@ -1,12 +1,11 @@
 # Utilise l'image de base PHP 8.2 en mode CLI
 FROM php:8.2-apache
 
-# Définit le répertoire de travail par défaut à /var/www/html/
-WORKDIR /var/www/html/calDAV
+# Définit le répertoire de travail par défaut à /var/www/html
+WORKDIR /var/www/calDAV
 
 # Met à jour les paquets et installe les dépendances nécessaires sans les recommandations supplémentaires
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends \
+RUN apt-get update && apt-get install -y --no-install-recommends \
     locales apt-utils git libicu-dev g++ libpng-dev \
     libxml2-dev libzip-dev libonig-dev libxslt-dev unzip libpq-dev nodejs npm wget \
     apt-transport-https lsb-release ca-certificates librdkafka-dev
@@ -42,9 +41,8 @@ RUN docker-php-ext-configure intl \
 # Installe et active l'extension APCu pour le cache utilisateur
 RUN pecl install apcu && docker-php-ext-enable apcu
 
-# Installe Yarn, un gestionnaire de paquets JavaScript
-# RUN npm install --global yarn
-
+# Copie les fichiers du projet dans le conteneur
+# COPY . ./calDAV
 COPY . .
 
 # Run Composer install, ignoring the missing extension requirement temporarily
@@ -57,8 +55,17 @@ RUN git config --global user.email "you@example.com" \
 # Enable Apache mod_rewrite
 RUN a2enmod rewrite
 
+# Crée une configuration Apache pour pointer vers le dossier public
+RUN echo "<VirtualHost *:80>\n\
+    DocumentRoot /var/www/calDAV/public\n\
+    <Directory /var/www/calDAV/public>\n\
+        AllowOverride All\n\
+        Require all granted\n\
+    </Directory>\n\
+</VirtualHost>" > /etc/apache2/sites-available/000-default.conf
+
 # Set the appropriate permissions and user
-RUN chown -R www-data:www-data /var/www/html/calDAV
+RUN chown -R www-data:www-data /var/www/calDAV
 
 # Change to www-data user
 USER www-data
@@ -66,11 +73,5 @@ USER www-data
 # Expose port 80
 EXPOSE 80
 
-# Garde le conteneur en cours d'exécution en attendant
-# CMD tail -f /dev/null
-
 # Démarre Apache dans le conteneur
 CMD ["apache2-foreground"]
-
-# Définit le répertoire de travail par défaut à /var/www/html/
-# WORKDIR /var/www/html/calDAV

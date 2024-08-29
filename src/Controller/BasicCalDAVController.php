@@ -2,16 +2,17 @@
 
 namespace App\Controller;
 
-use App\Command\ConsumerCommand;
+use App\Kafka;
+use App\JwtTool;
+use App\HttpTools;
 use Firebase\JWT\JWT;
 use App\Security\User;
-use App\Entity\EventDto;
 use App\Entity\userDto;
-use App\HttpTools;
-use App\JwtTool;
-use App\Kafka;
+use App\EventProcessor;
+use SimpleCalDAVClient;
+use App\Entity\EventDto;
+use App\Command\ConsumerCommand;
 use Enqueue\Client\ProducerInterface;
-use EventProcessor;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
@@ -24,6 +25,12 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 
 class BasicCalDAVController extends AbstractController
 {
+
+    #[Route('/', name:'index')]
+    public function index():JsonResponse
+    {
+        return $this->json(['msg' => 'docker semble fonctionner !'], Response::HTTP_OK);
+    }
 
     #[IsGranted('ROLE_USER', message: 'Acces denied', statusCode: Response::HTTP_UNAUTHORIZED)]
     #[Route('/events/{calID}', name: 'baikal_events', methods: ['POST'])]
@@ -103,8 +110,7 @@ class BasicCalDAVController extends AbstractController
         string $calID,
         Request $request,
         ValidatorInterface $validator,
-        SerializerInterface $serializer,
-        ProducerInterface $producer
+        SerializerInterface $serializer
     ): JsonResponse {
 
         $event = (new EventDto())
@@ -136,15 +142,6 @@ class BasicCalDAVController extends AbstractController
         //add event
         $newEventOnServer = $client->create($event);
         //----------------------------------------------
-
-        // add kafka topic
-        // $kafka = (new Kafka())->send('Enqueue bundle test 1');
-        // $producer->sendEvent(EventProcessor::DEFAULT_TOPIC, 'Enqueue bundle test 1');
-
-        // send command to ONE consumer
-        // $producer->sendCommand('event_processor', 'Something has happened');
-
-        // dd($newEventOnServer);
 
         return $this->json([
             'cal_id' => $calID,
@@ -188,9 +185,16 @@ class BasicCalDAVController extends AbstractController
         ], Response::HTTP_OK);
     }
 
-    private function doConnect(string $url, string $username, string $password): \SimpleCalDAVClient
+    #[Route('/notify', name: 'notify', methods: ['GET'])]
+    public function notify(ProducerInterface $producer): JsonResponse
     {
-        $client = new \SimpleCalDAVClient();
+        $producer->sendEvent(EventProcessor::DEFAULT_TOPIC, 'Enqueue bundle test 1');
+        return $this->json([], Response::HTTP_OK);
+    }
+
+    private function doConnect(string $url, string $username, string $password): SimpleCalDAVClient
+    {
+        $client = new SimpleCalDAVClient();
         $client->connect($url, $username, $password);
         return $client;
     }
