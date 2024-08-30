@@ -40,6 +40,7 @@ class BasicCalDAVController extends AbstractController
         ValidatorInterface $validator,
         SerializerInterface $serializer
     ): JsonResponse {
+
         /** @var App\Security\User */
         $user = $this->getUser();
 

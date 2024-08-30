@@ -62,7 +62,7 @@ class GoogleCalDAVController extends AbstractController
 
       $jwt = JwtTool::encode($this->getParameter('jwt.api.key'), $user);
 
-      // Get all calandars on server
+      // Get all calendars on server
       $calendars = (new HttpTools('https://www.googleapis.com/calendar/v3/'))
          ->get('users/me/calendarList', [], [
             'Authorization' => "Bearer " . $user->getPassword()

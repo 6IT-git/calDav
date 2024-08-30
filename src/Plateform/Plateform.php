@@ -7,49 +7,71 @@ use InvalidArgumentException;
 use App\Plateform\Plateforms\Baikal;
 use App\Plateform\Plateforms\Google;
 use App\Security\User;
+use Symfony\Component\DependencyInjection\ParameterBag\ParameterBag;
 use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
 use Symfony\Component\HttpFoundation\Request;
 
 abstract class Plateform
 {
+
     protected string $srvUrl;
 
+    /**
+     * @param Request $request
+     * @return User
+     */
     abstract public function login(Request $request): User;
 
     /**
-     * get all calendars
-     *
+     * @param string $username
+     * @param string $password
      * @return array
      */
-    abstract public function getCalendars(): array;
+    abstract public function getCalendars(string $username, string $password): array;
 
     /**
-     * get all events
-     *
+     * @param string $username
+     * @param string $password
      * @param string $idCal
      * @param EventDto $event
      * @return array
      */
-    abstract public function getEvents(string $idCal, EventDto $event): array;
+    abstract public function getEvents(string $username, string $password, string $idCal, EventDto $event): array;
 
     /**
-     * add new event
-     *
+     * @param string $username
+     * @param string $password
      * @param string $calID
      * @param EventDto $event
      * @return string
      */
-    abstract public function addEvent(string $calID, EventDto $event): string;
+    abstract public function addEvent(string $username, string $password, string $calID, EventDto $event): string;
 
-
-    // Table de mappage des types aux classes
     private static array $plateformMap = [
         'baikal' => Baikal::class,
         'goolge' => Google::class,
         // 'zimbra' => Zimbra::class,
     ];
 
-    public static function create(string $type): self
+    /**
+     * @param string $type
+     * @return self
+     */
+    public static function create(string $type, ParameterBagInterface $params): self
+    {
+        if (!array_key_exists($type, self::$plateformMap)) {
+            throw new InvalidArgumentException("Invalid product type: $type");
+        }
+
+        $className = self::$plateformMap[$type];
+        return new $className($params);
+    }
+
+    /**
+     * @param string $type
+     * @return self
+     */
+    public function getInstance(string $type): self
     {
         if (!array_key_exists($type, self::$plateformMap)) {
             throw new InvalidArgumentException("Invalid product type: $type");
@@ -58,4 +80,5 @@ abstract class Plateform
         $className = self::$plateformMap[$type];
         return new $className();
     }
+
 }

@@ -20,6 +20,12 @@ class Baikal extends Plateform{
         $this->srvUrl = $parameter->get('baikal.srv.url');
     }
 
+    /**
+     * Login
+     * 
+     * @param Request $request
+     * @return User
+     */
     public function login(Request $request):User
     {
         $userDto = (new User())
@@ -27,28 +33,65 @@ class Baikal extends Plateform{
             ->setPassword($request->request->get('password'))
             ->setCalCollectionName($request->request->get('cal_name'));
         
-        $this->client = (new SimpleCalDAVClient())->connect($this->srvUrl, $userDto->getUsername(), $userDto->getPassword());
+        // $this->client = $this->doConnect($userDto->getUsername(), $userDto->getPassword());
 
         return $userDto;
     }
 
-    public function addEvent(string $calID, EventDto $event):string{
+    /**
+     * Undocumented function
+     *
+     * @param string $username
+     * @param string $password
+     * @return array
+     */
+    public function getCalendars(string $username, string $password, int $offset=0, int $limit=20):array
+    {
+
+        $calendars = [];
+
+        $client = $this->doConnect($username, $password);
+        
+        $results = $client->findCalendars();
+
+        foreach($results as $result){
+            $calendars[] = $result;
+        }
+
+        return $calendars;
+    }
+
+    /**
+     * Undocumented function
+     *
+     * @param string $username
+     * @param string $password
+     * @param string $calID
+     * @param EventDto $event
+     * @return string
+     */
+    public function addEvent(string $username, string $password, string $calID, EventDto $event):string
+    {
+        $client = $this->doConnect($username, $password);
 
         $arrayOfCalendars = $this->client->findCalendars();
-        $this->client->setCalendar($arrayOfCalendars[$calID]);
+        $client->setCalendar($arrayOfCalendars[$calID]);
+        
+        $result = $client->create($event);
 
-        $this->client->create($event);
-        return '';
+        return $result->__toString();
     }
 
-    public function getCalendars():array
-    {
-        $result = $this->client->findCalendars();
-
-        return [];
-    }
-
-    public function getEvents(string $calID, EventDto $event):array
+    /**
+     * Undocumented function
+     *
+     * @param string $username
+     * @param string $password
+     * @param string $calID
+     * @param EventDto $event
+     * @return array
+     */
+    public function getEvents(string $username, string $password, string $calID, EventDto $event):array
     {
 
         $calendars = $this->client->findCalendars();
@@ -60,6 +103,29 @@ class Baikal extends Plateform{
         );
 
         return [];
+    }
+
+    
+    private function _____doConnect(string $username, string $password)
+    {
+        if(!$this->client){
+            $this->client = new SimpleCalDAVClient();
+            $this->client->connect($this->srvUrl, $username, $password);
+        }
+    }
+
+    /**
+     * Undocumented function
+     *
+     * @param string $username
+     * @param string $password
+     * @return SimpleCalDAVClient
+     */
+    private function doConnect(string $username, string $password): SimpleCalDAVClient
+    {
+        $client = new SimpleCalDAVClient();
+        $client->connect($this->srvUrl, $username, $password);
+        return $client;
     }
 
 }

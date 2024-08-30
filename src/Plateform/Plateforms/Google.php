@@ -32,12 +32,8 @@ class Google extends Plateform
         return $userDto;
     }
 
-    /**
-     * get all calendars
-     *
-     * @return array
-     */
-    public function getCalendars(): array
+
+    public function getCalendars(string $username, string $password): array
     {
         $calendars = (new HttpTools($this->srvUrl))
         ->get('/users/me/calendarList', [], [
@@ -48,14 +44,7 @@ class Google extends Plateform
         return $calendars;
     }
 
-    /**
-     * get all events
-     *
-     * @param string $idCal
-     * @param EventDto $event
-     * @return array
-     */
-    public function getEvents(string $idCal, EventDto $event): array
+    public function getEvents(string $username, string $password, string $idCal, EventDto $event): array
     {
         $events = (new HttpTools($this->srvUrl))
            ->get("/calendars/$idCal/events", [], [
@@ -65,14 +54,7 @@ class Google extends Plateform
         return [];
     }
 
-    /**
-     * add new event
-     *
-     * @param string $calID
-     * @param EventDto $event
-     * @return string
-     */
-    public function addEvent(string $calID, EventDto $event): string
+    public function addEvent(string $username, string $password, string $calID, EventDto $event): string
     {
         return '';
     }
