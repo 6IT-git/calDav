@@ -34,8 +34,6 @@ class EventDto{
     )]
     private string $summary;
 
-    #[Assert\NotNull]
-    #[Assert\NotBlank]
     #[Assert\DateTime]
     private string $createAt;
     

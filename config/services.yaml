@@ -20,6 +20,8 @@ parameters:
     google.scope: "%env(GOOGLE_SCOPE)%"
     google.redirect.uri: "%env(GOOGLE_REDIRECT_URI)%"
     google.srv.url: "%env(GOOGLE_SRV_URL)%"
+    google.caldav.url: "%env(GOOGLE_CALDAV_URL)%"
+    certificate.path: "%kernel.project_dir%/config/certs/cacert.pem"
 
 services:
     # default configuration for services in *this* file
@@ -38,3 +40,4 @@ services:
 
     # add more service definitions when explicit configuration is needed
     # please note that last definitions always *replace* previous ones
+

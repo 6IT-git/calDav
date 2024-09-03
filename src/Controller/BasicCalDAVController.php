@@ -34,12 +34,7 @@ class BasicCalDAVController extends AbstractController
 
     #[IsGranted('ROLE_USER', message: 'Acces denied', statusCode: Response::HTTP_UNAUTHORIZED)]
     #[Route('/events/{calID}', name: 'baikal_events', methods: ['POST'])]
-    public function getEvents(
-        string $calID,
-        Request $request,
-        ValidatorInterface $validator,
-        SerializerInterface $serializer
-    ): JsonResponse {
+    public function getEvents(string $calID, Request $request, ValidatorInterface $validator, SerializerInterface $serializer): JsonResponse {
 
         /** @var App\Security\User */
         $user = $this->getUser();
@@ -175,7 +170,7 @@ class BasicCalDAVController extends AbstractController
             $userDto->getPassword()
         );
         $calendars = $client->findCalendars();
-        //--------------------------------------------------------
+        //----------------------------------------------------------
 
         // gen jwt token
         $jwt = JwtTool::encode($this->getParameter('jwt.api.key'), $userDto);

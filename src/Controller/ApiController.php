@@ -3,36 +3,64 @@
 namespace App\Controller;
 
 use App\JwtTool;
-use App\Security\User;
+use App\HttpTools;
 use App\Entity\EventDto;
-use App\PlateformInterface;
 use App\Plateform\Plateform;
-use Ramsey\Uuid\Validator\ValidatorInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\Serializer\SerializerInterface;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
-use Symfony\Component\HttpKernel\Attribute\MapRequestPayload;
+use Symfony\Component\Validator\Validator\ValidatorInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\Validator\ConstraintViolationListInterface;
 use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
 
 class ApiController extends AbstractController
 {
-    #[Route('/caldav', name: 'app_api')]
+    private ParameterBagInterface $params;
+
+    public function __construct(ParameterBagInterface $params)
+    {
+        $this->params = $params;
+    }
+
+
+    #[Route('/google', name: 'google_code', methods: ['GET'])]
     public function index(): JsonResponse
     {
-        return $this->json([
-            'message' => 'Welcome to your new controller!',
-            'path' => 'src/Controller/ApiController.php',
-        ]);
+       $url = "https://accounts.google.com/o/oauth2/v2/auth?scope=" .
+          $this->getParameter('google.scope') . "&access_type=offline&include_granted_scopes=true&response_type=code&redirect_uri=" .
+          $this->getParameter('google.redirect.uri') . "&client_id=" .
+          $this->getParameter('google.client.id');
+ 
+       return $this->json([
+          'url' => urldecode($url),
+          'message' => 'In your browser go to url above'
+       ], Response::HTTP_OK);
+    }
+ 
+    #[Route('/oauth2callback.php', name: 'google_callback', methods: ['GET'])]
+    public function callback(Request $request): JsonResponse
+    {
+       $json = (new HttpTools('https://oauth2.googleapis.com'))
+          ->post('/token', [
+             'code' => $request->query->get('code'),
+             'client_id' => $this->getParameter('google.client.id'),
+             'client_secret' => $this->getParameter('google.client.secret'),
+             'redirect_uri' => $this->getParameter('google.redirect.uri'),
+             'grant_type' => 'authorization_code',
+          ], ['Content-Type' => 'application/x-www-form-urlencoded'])
+          ->json();
+ 
+       return $this->json($json);
     }
 
     #[Route('/{plateform}/login', name: 'login', methods: ['POST'])]
-    public function login(string $plateform, Request $request, ParameterBagInterface $params): JsonResponse
+    public function login(string $plateform, Request $request): JsonResponse
     {
-        $plateformInstance = Plateform::create($plateform, $params);
+        $plateformInstance = Plateform::create($plateform, $this->params);
 
         $userDto = $plateformInstance->login($request);
 
@@ -42,22 +70,22 @@ class ApiController extends AbstractController
         return $this->json([
             'token' => $jwt,
             'calendars' => $plateformInstance->getCalendars(
-                $userDto->getUsername(), 
-                $userDto->getPassword()
+                $userDto->getPassword(),
+                $userDto->getUsername()
             ),
         ], Response::HTTP_OK);
     }
 
     #[IsGranted('ROLE_USER', message: 'Acces denied', statusCode: Response::HTTP_UNAUTHORIZED)]
     #[Route('/{plateform}/calendars', name: 'api_calendars', methods: ['GET'])]
-    public function getCalendars(string $plateform, ParameterBagInterface $params): JsonResponse
+    public function getCalendars(string $plateform): JsonResponse
     {
         /** @var App\Security\User */
         $user = $this->getUser();
 
-        $plateformInstance = Plateform::create($plateform, $params);
+        $plateformInstance = Plateform::create($plateform, $this->params);
 
-        $calendars = $plateformInstance->getCalendars($user->getUsername(), $user->getPassword());
+        $calendars = $plateformInstance->getCalendars($user->getPassword());
 
         return $this->json([
             'token' => 'token',
@@ -66,21 +94,33 @@ class ApiController extends AbstractController
     }
 
     #[IsGranted('ROLE_USER', message: 'Acces denied', statusCode: Response::HTTP_UNAUTHORIZED)]
-    #[Route('/{plateform}/events/{calID}', name: 'api_events', methods: ['POST'])]
-    public function getEvents(#[MapRequestPayload] EventDto $event): JsonResponse
+    #[Route('/{plateform}/events/{calID}/{limit}/{offset}', name: 'api_events', methods: ['GET'])]
+    public function getEvents(string $plateform, string $calID, int $limit, int $offset = 0): JsonResponse
     {
-        dd($event);
+        /** @var App\Security\User */
+        $user = $this->getUser();
 
-        if ($event->getDateEnd() <= $event->getDateStart())
-            return $this->json('Invalide date', Response::HTTP_BAD_REQUEST);
-        
-        return $this->json([], Response::HTTP_OK);
+        if ($limit <= $offset)
+            return $this->json('Invalide interval date', Response::HTTP_BAD_REQUEST);
+
+        $plateformInstance = Plateform::create($plateform, $this->params);
+
+        $events = $plateformInstance->getEvents($calID, $user->getPassword(), $user->getUsername(), $limit, $offset);
+
+        return $this->json([
+            'cal_id' => $calID,
+            'events' => $events,
+            'token' => $user->getUserIdentifier()
+        ], Response::HTTP_OK);
     }
 
     #[IsGranted('ROLE_USER', message: 'access denied', statusCode: Response::HTTP_UNAUTHORIZED)]
-    #[Route('/{plateform}/event/{calID}/add', 'api_add', methods: ['POST'])]
-    public function addEvent(Request $request, ValidatorInterface $validator): JsonResponse
+    #[Route('/{plateform}/add/event/{calID}', 'api_add', methods: ['POST'])]
+    public function addEvent(string $plateform, string $calID, Request $request, ValidatorInterface $validator, SerializerInterface $serializer): JsonResponse
     {
+        /** @var App\Security\User */
+        $user = $this->getUser();
+
         $event = (new EventDto())
             ->setDateStart($request->request->get('date_start'))
             ->setDateEnd($request->request->get('date_end'))
@@ -95,24 +135,25 @@ class ApiController extends AbstractController
 
         if ($event->getDateEnd() <= $event->getDateStart())
             return $this->json('Invalide date', Response::HTTP_BAD_REQUEST);
+            
+        $plateformInstance = Plateform::create($plateform, $this->params);
+        $newEventOnServer = $plateformInstance->addEvent($user->getUsername(), $user->getPassword(), $calID, $event);
 
-        return $this->json([], Response::HTTP_CREATED);
+        return $this->json([
+            'cal_id' => $calID,
+            'event' => $newEventOnServer,
+            'token' => $user->getUserIdentifier()
+        ], Response::HTTP_CREATED);
     }
 
-    /**
-     * Undocumented function
-     *
-     * @param array $errors
-     * @return array
-     */
-    private function parseError(array $errors):array
-    {    
+
+    private function parseError(ConstraintViolationListInterface $errors): array
+    {
         $errorMessages = [];
         foreach ($errors as $error) {
             $errorMessages[] = $error->getMessage();
         }
 
         return $errorMessages;
-
     }
 }

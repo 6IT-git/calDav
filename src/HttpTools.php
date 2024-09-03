@@ -6,38 +6,34 @@ use GuzzleHttp\Client;
 
 class HttpTools
 {
+    private $response;
 
-    private string $url;
-    public $response;
+    private Client $client;
 
-    public function __construct(string $baseUrl)
+    public function __construct(string $baseUrl, string $certificatePath = '')
     {
-        $this->url = $baseUrl;
+        // $this->url = $baseUrl;
+        $this->client = new Client([
+            'base_uri' => $baseUrl,
+            'verify' => $certificatePath ? $certificatePath : false
+        ]);
     }
 
-    public function get(string $endpoint, array $params = [], array $headers = []):self
+    public function get(string $endpoint, array $params = [], array $headers = []): self
     {
-        $queryString = $params ? '?'.http_build_query($params): '';
-        $client = new Client([
-            'base_uri' => $this->url.$queryString,
-            'verify' => false
+
+        $this->response = $this->client->request('GET', $endpoint, [
+            'headers' => $headers,
+            'query' => $params
         ]);
-        $this->response = $client->request('GET', $endpoint, [
-            'headers' => $headers
-        ]);
-        
+
         return $this;
     }
 
-    public function post(string $endpoint, array $formData = [], array $headers = []):self
+    public function post(string $endpoint, array $formData = [], array $headers = []): self
     {
 
-        $client = new Client([
-            'base_uri' => $this->url,
-            'verify' => false
-        ]);
-
-        $this->response = $client->request('POST', $endpoint, [
+        $this->response = $this->client->request('POST', $endpoint, [
             'headers' => $headers,
             'form_params' => $formData
         ]);
@@ -45,18 +41,13 @@ class HttpTools
         return $this;
     }
 
-    public function postJson(string $endpoint, array $payload = [], array $headers = []):self
+    public function postJson(string $endpoint, array $payload = [], array $headers = []): self
     {
 
-        $client = new Client([
-            'base_uri' => $this->url,
-            'verify' => false
-        ]);
-
-        $this->response = $client->request('POST', $endpoint, [
+        $this->response = $this->client->request('POST', $endpoint, [
             'headers' => $headers,
             'json' => $payload
-        ]);    
+        ]);
 
         return $this;
     }
@@ -66,5 +57,10 @@ class HttpTools
         // Pour traiter la réponse
         $body = $this->response->getBody();
         return json_decode($body, true);
+    }
+
+    public function brut()
+    {
+        return $this->response;
     }
 }

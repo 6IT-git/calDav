@@ -5,6 +5,7 @@ namespace App\Controller;
 use App\JwtTool;
 use App\HttpTools;
 use Google\Client;
+use GuzzleHttp\Client as GuzzleHttpClient;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
@@ -22,7 +23,7 @@ class GoogleCalDAVController extends AbstractController
       $this->state = md5(time() . '@ginov');
    }
 
-   #[Route('/google', name: 'google_code', methods: ['GET'])]
+   /* #[Route('/google__', name: 'google_code__', methods: ['GET'])]
    public function index(): JsonResponse
    {
       $url = "https://accounts.google.com/o/oauth2/v2/auth?scope=" .
@@ -36,7 +37,7 @@ class GoogleCalDAVController extends AbstractController
       ], Response::HTTP_OK);
    }
 
-   #[Route('/oauth2callback.php', name: 'google_callback', methods: ['GET'])]
+   #[Route('/oauth2callback__.php', name: 'google_callback__', methods: ['GET'])]
    public function callback(Request $request): JsonResponse
    {
       $json = (new HttpTools('https://oauth2.googleapis.com'))
@@ -50,9 +51,9 @@ class GoogleCalDAVController extends AbstractController
          ->json();
 
       return $this->json($json);
-   }
+   } */
 
-   #[Route('/google/login', name: 'google_login', methods: ['POST'])]
+   #[Route('/google/login__', name: 'google_login__', methods: ['POST'])]
    public function login(Request $request): JsonResponse
    {
       $user = (new \App\Security\User())
@@ -62,7 +63,7 @@ class GoogleCalDAVController extends AbstractController
 
       $jwt = JwtTool::encode($this->getParameter('jwt.api.key'), $user);
 
-      // Get all calendars on server
+      // Get all calandars on server
       $calendars = (new HttpTools('https://www.googleapis.com/calendar/v3/'))
          ->get('users/me/calendarList', [], [
             'Authorization' => "Bearer " . $user->getPassword()
@@ -98,11 +99,17 @@ class GoogleCalDAVController extends AbstractController
       /** @var App\Security\User */
       $user = $this->getUser();
 
-      $events = (new HttpTools('https://www.googleapis.com/calendar/v3/'))
-         ->get("calendars/$calID/events", [], [
-            'Authorization' => "Bearer " . $user->getPassword()
-         ])
-         ->json();
+      /* $http = (new GuzzleHttpClient([
+         'base_uri' => "https://apidata.googleusercontent.com/caldav/v2/$calID/events",
+         'verify' => $this->getParameter('certificate.path')
+      ]))->request('GET', '',  ['headers' => ['Authorization' => "Bearer " . $user->getPassword()]]); 
+      $events = $http->getBody();*/
+
+      $events = (new HttpTools($this->getParameter('google.caldav.url'), $this->getParameter('certificate.path')))
+         ->get("calendars/$calID/events", [], ['Authorization' => "Bearer " . $user->getPassword()])
+         ->brut();
+
+      dd($events);
 
       return $this->json(['events' => $events], Response::HTTP_OK);
    }
