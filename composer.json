@@ -7,11 +7,15 @@
         "php": ">=8.1",
         "ext-ctype": "*",
         "ext-iconv": "*",
+        "enqueue/enqueue-bundle": "^0.10.19",
+        "enqueue/fs": "*",
+        "enqueue/rdkafka": "^0.10.20",
         "firebase/php-jwt": "^6.10",
         "guzzlehttp/guzzle": "^7.9",
         "paragonie/sodium_compat": "^2.0",
         "phpdocumentor/reflection-docblock": "^5.4",
         "phpstan/phpdoc-parser": "^1.29",
+        "symfony/apache-pack": "^1.0",
         "symfony/console": "6.4.*",
         "symfony/dotenv": "6.4.*",
         "symfony/flex": "^2",
@@ -41,7 +45,7 @@
             "App\\": "src/"
         },
         "files": [
-            "lib/simpleCalDAV/simpleCalDAVClient.php"
+            "lib/simpleCalDAV/SimpleCalDAVClient.php"
         ]
     },
     "autoload-dev": {

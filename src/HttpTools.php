@@ -6,39 +6,47 @@ use GuzzleHttp\Client;
 
 class HttpTools
 {
-
-    private string $url;
     private $response;
 
-    public function __construct(string $url)
+    private Client $client;
+
+    public function __construct(string $baseUrl, string $certificatePath = '')
     {
-        $this->url = $url;
+        // $this->url = $baseUrl;
+        $this->client = new Client([
+            'base_uri' => $baseUrl,
+            'verify' => $certificatePath ? $certificatePath : false
+        ]);
     }
 
-    public function get(string $endpoint, array $params = [], array $headers = []):self
+    public function get(string $endpoint, array $params = [], array $headers = []): self
     {
-        $client = new Client([
-            'base_uri' => $this->url,
-            'verify' => false
+
+        $this->response = $this->client->request('GET', $endpoint, [
+            'headers' => $headers,
+            'query' => $params
         ]);
-        $this->response = $client->request('GET', $endpoint, [
-            'headers' => $headers
-        ]);
-        
+
         return $this;
     }
 
-    public function post(string $endpoint, array $formData = [], array $headers = []):self
+    public function post(string $endpoint, array $formData = [], array $headers = []): self
     {
 
-        $client = new Client([
-            'base_uri' => $this->url,
-            'verify' => false
-        ]);
-
-        $this->response = $client->request('POST', $endpoint, [
+        $this->response = $this->client->request('POST', $endpoint, [
             'headers' => $headers,
             'form_params' => $formData
+        ]);
+
+        return $this;
+    }
+
+    public function postJson(string $endpoint, array $payload = [], array $headers = []): self
+    {
+
+        $this->response = $this->client->request('POST', $endpoint, [
+            'headers' => $headers,
+            'json' => $payload
         ]);
 
         return $this;
@@ -49,5 +57,10 @@ class HttpTools
         // Pour traiter la réponse
         $body = $this->response->getBody();
         return json_decode($body, true);
+    }
+
+    public function brut()
+    {
+        return $this->response;
     }
 }

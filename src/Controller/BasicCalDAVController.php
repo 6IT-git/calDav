@@ -2,10 +2,17 @@
 
 namespace App\Controller;
 
-use Firebase\JWT\JWT;
-use App\Entity\User;
-use App\Entity\EventDto;
+use App\Kafka;
+use App\JwtTool;
 use App\HttpTools;
+use Firebase\JWT\JWT;
+use App\Security\User;
+use App\Entity\userDto;
+use App\EventProcessor;
+use SimpleCalDAVClient;
+use App\Entity\EventDto;
+use App\Command\ConsumerCommand;
+use Enqueue\Client\ProducerInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
@@ -19,42 +26,73 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 class BasicCalDAVController extends AbstractController
 {
 
-    #[IsGranted('ROLE_USER', message:'Acces denied', statusCode: Response::HTTP_UNAUTHORIZED)]
-    #[Route('/events', name: 'baikal_events', methods: ['GET'])]
-    public function getEvents(): JsonResponse
+    #[Route('/', name:'index')]
+    public function index():JsonResponse
     {
+        return $this->json(['msg' => 'docker semble fonctionner !'], Response::HTTP_OK);
+    }
+
+    #[IsGranted('ROLE_USER', message: 'Acces denied', statusCode: Response::HTTP_UNAUTHORIZED)]
+    #[Route('/events/{calID}', name: 'baikal_events', methods: ['POST'])]
+    public function getEvents(string $calID, Request $request, ValidatorInterface $validator, SerializerInterface $serializer): JsonResponse {
+
         /** @var App\Security\User */
         $user = $this->getUser();
 
+        $event = (new EventDto())
+            ->setDateStart($request->request->get('date_start'))
+            ->setDateEnd($request->request->get('date_end'))
+            ->setSummary($request->request->get('summary', 'ginov test list event'));
+
+        $errors = $validator->validate($event);
+        if (count($errors) > 0) {
+            return $this->json($serializer->serialize($errors, 'json'), Response::HTTP_BAD_REQUEST);
+        }
+
+        if ($event->getDateEnd() <= $event->getDateStart())
+            return $this->json('Invalide date', Response::HTTP_BAD_REQUEST);
+
+        // Get all events for baikal ---------------------
         $client = $this->doConnect(
-            $this->getParameter('baikal.srv.url').$user->getUsername().'/'.$user->getCalendar(),
-            $user->getUsername(), 
-            $user->getPassword
+            $this->getParameter('baikal.srv.url') . $user->getUsername() . '/' . $user->getCalCollectionName(),
+            $user->getUsername(),
+            $user->getPassword()
         );
 
-        // get all calandars on server
+        // get all calendars on server
         $calendars = $client->findCalendars();
+        $client->setCalendar($calendars[$calID]);
+
+        $events = $client->getEvents(
+            EventDto::formatDate($event->getDateStart()),
+            EventDto::formatDate($event->getDateEnd())
+        );
+        //-------------------------------------------------
 
         return $this->json([
-            'message' => 'is building'
-        ]);
+            'cal_id' => $calID,
+            'events' => $events,
+            'token' => $user->getUserIdentifier()
+        ], Response::HTTP_OK);
     }
 
-    #[IsGranted('ROLE_USER', message:'Acces denied', statusCode: Response::HTTP_UNAUTHORIZED)]
+    #[IsGranted('ROLE_USER', message: 'Acces denied', statusCode: Response::HTTP_UNAUTHORIZED)]
     #[Route('/calendars', name: 'baikal_calendars', methods: ['GET'])]
     public function getCalendars(): JsonResponse
     {
         /** @var App\Security\User */
         $user = $this->getUser();
 
+        //getcalendar------------------------
         $client = $this->doConnect(
-            $this->getParameter('baikal.srv.url').$user->getUsername().'/'.$user->getCalendar(),
-            $user->getUsername(), 
-            $user->getPassword
+            $this->getParameter('baikal.srv.url') . $user->getUsername() . '/' . $user->getCalCollectionName(),
+            $user->getUsername(),
+            $user->getPassword()
         );
 
         // get all calandars on server
         $calendars = $client->findCalendars();
+        //-------------------------------------
 
         return $this->json([
             'calendars' => $calendars,
@@ -62,17 +100,19 @@ class BasicCalDAVController extends AbstractController
         ], Response::HTTP_OK);
     }
 
-    #[IsGranted('ROLE_USER', message:'access denied', statusCode:Response::HTTP_UNAUTHORIZED)]
-    #[Route('/add', 'baikal_add', methods: ['POST'])]
-    public function addEvent(Request $request, ValidatorInterface $validator, SerializerInterface $serializer): JsonResponse
-    {
-        $calID = $request->request->get('calID', '');
+    #[IsGranted('ROLE_USER', message: 'access denied', statusCode: Response::HTTP_UNAUTHORIZED)]
+    #[Route('/add/{calID}', 'baikal_add', methods: ['POST'])]
+    public function addEvent(
+        string $calID,
+        Request $request,
+        ValidatorInterface $validator,
+        SerializerInterface $serializer
+    ): JsonResponse {
 
         $event = (new EventDto())
-            ->setUid(md5(time()))
-            ->setCreateAt($request->request->get('create_at', 'now'))
-            ->setDateStart($request->request->get('date_start', ''))
-            ->setDateEnd($request->request->get('date_end', ''))
+            ->setUid('ginov_event@'.md5(time()))
+            ->setDateStart($request->request->get('date_start'))
+            ->setDateEnd($request->request->get('date_end'))
             ->setSummary($request->request->get('summary', ''))
             ->setTimeZoneID($request->request->get('timezone', 'Europe/Berlin'));
 
@@ -81,48 +121,29 @@ class BasicCalDAVController extends AbstractController
             return $this->json($serializer->serialize($errors, 'json'), Response::HTTP_BAD_REQUEST);
         }
 
-        if($event->getDateEnd() <= $event->getDateStart())
+        if ($event->getDateEnd() <= $event->getDateStart())
             return $this->json('Invalide date', Response::HTTP_BAD_REQUEST);
-
-        //normalement il faut aussi tester le format
-        if(strlen(trim($calID)) == 0) 
-            return $this->json(["Bad calID"], Response::HTTP_BAD_REQUEST);
 
         /** @var App\Security\User */
         $user = $this->getUser();
 
+        // add event for baikal ------------------------
         $client = $this->doConnect(
-            $this->getParameter('baikal.srv.url').$user->getUsername().'/'.$user->getCalCollectionName(),
-            $user->getUsername(), 
+            $this->getParameter('baikal.srv.url') . $user->getUsername() . '/' . $user->getCalCollectionName(),
+            $user->getUsername(),
             $user->getPassword()
-        );        
-
+        );
         $arrayOfCalendars = $client->findCalendars();
-        
         $client->setCalendar($arrayOfCalendars[$calID]);
-
         //add event
         $newEventOnServer = $client->create($event);
+        //----------------------------------------------
 
-        // get kafka api token
-        $response = (new HttpTools($this->getParameter('key.cloak.url')))
-            ->post('/realms/nest-example/protocol/openid-connect/token', [
-                'grant_type'=>'password', 
-                'scope'=>'openid', 
-                'username'=>'user', 
-                'password'=>'user', 
-                'client_id'=>'nest-api', 
-                'client_secret'=>'05c1ff5e-f9ba-4622-98e3-c4c9d280546e'
-            ])
-            ->json();
-        dd($response);
-
-        // add kafka topic
-
-        return $this->json(
-            ['event' => $newEventOnServer, 'token' => $user->getUserIdentifier()], 
-            Response::HTTP_CREATED
-        );
+        return $this->json([
+            'cal_id' => $calID,
+            'event' => $newEventOnServer,
+            'token' => $user->getUserIdentifier()
+        ], Response::HTTP_CREATED);
     }
 
     #[Route('/login', name: 'baikal_login', methods: ['POST'])]
@@ -131,35 +152,28 @@ class BasicCalDAVController extends AbstractController
         ValidatorInterface $validator,
         SerializerInterface $serializer
     ): JsonResponse {
-        
-        $userDto = (new User())
-            ->setUsername($request->get('username', ''))
-            ->setPassword($request->get('password', ''))
-            ->setCalCollectionName($request->get('calName', ''));
 
+        $userDto = (new user())
+            ->setUsername($request->request->get('username'))
+            ->setPassword($request->request->get('password'))
+            ->setCalCollectionName($request->request->get('cal_name'));
 
         $errors = $validator->validate($userDto);
         if (count($errors) > 0) {
             return $this->json($serializer->serialize($errors, 'json'), Response::HTTP_BAD_REQUEST);
         }
 
-        // get calDAV client
+        // get all calendars on server for baikal ----------------
         $client = $this->doConnect(
-            $this->getParameter('baikal.srv.url').$userDto->getUsername().'/'.$userDto->getCalCollectionName(),
+            $this->getParameter('baikal.srv.url') . $userDto->getUsername() . '/' . $userDto->getCalCollectionName(),
             $userDto->getUsername(),
             $userDto->getPassword()
         );
-
-        // get all calandars on server
         $calendars = $client->findCalendars();
+        //----------------------------------------------------------
 
         // gen jwt token
-        $jwt = JWT::encode([
-            'username' => $userDto->getUsername(),
-            'password' => $userDto->getPassword(),
-            'calendar_name' => $userDto->getCalCollectionName(),
-            'exp' => time()+60*60
-        ], $this->getParameter('jwt.api.key'), $this->getParameter('jwt.encoder'));
+        $jwt = JwtTool::encode($this->getParameter('jwt.api.key'), $userDto);
 
         return $this->json([
             'calendars' => $calendars,
@@ -167,11 +181,17 @@ class BasicCalDAVController extends AbstractController
         ], Response::HTTP_OK);
     }
 
-    private function doConnect(string $url, string $username, string $password): \SimpleCalDAVClient
+    #[Route('/notify', name: 'notify', methods: ['GET'])]
+    public function notify(ProducerInterface $producer): JsonResponse
     {
-        $client = new \SimpleCalDAVClient();
+        $producer->sendEvent(EventProcessor::DEFAULT_TOPIC, 'Enqueue bundle test 1');
+        return $this->json([], Response::HTTP_OK);
+    }
+
+    private function doConnect(string $url, string $username, string $password): SimpleCalDAVClient
+    {
+        $client = new SimpleCalDAVClient();
         $client->connect($url, $username, $password);
         return $client;
     }
-
 }

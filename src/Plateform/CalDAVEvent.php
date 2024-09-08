@@ -1,11 +1,11 @@
 <?php
-namespace App\Entity;
+namespace App\Plateform;
 
 use DateTime;
 use DateTimeZone;
 use Symfony\Component\Validator\Constraints as Assert;
 
-class EventDto{
+class CalDAVEvent{
 
     const DEFAULT_TIME_ZONE = 'Europe/Berlin';
 
@@ -37,8 +37,6 @@ class EventDto{
     private string $location;
 
     private string $rrule;
-
-    
 
     #[Assert\DateTime]
     private string $createAt;
@@ -187,6 +185,66 @@ class EventDto{
     }
 
     /**
+     * @return string
+     */
+    public function __toString(): string
+    {
+        $start = self::formatDate($this->dateStart);
+        $end = self::formatDate($this->dateEnd);
+        $createAt = self::formatDate($this->createAt);
+
+        return <<<EOD
+        BEGIN:VCALENDAR
+        PRODID:-//SomeExampleStuff//EN
+        VERSION:2.0
+        BEGIN:VTIMEZONE
+        TZID:$this->timeZoneID
+        X-LIC-LOCATION:$this->location
+        BEGIN:DAYLIGHT
+        TZOFFSETFROM:+0100
+        TZOFFSETTO:+0200
+        TZNAME:CEST
+        DTSTART:$start
+        RRULE:FREQ=YEARLY;BYDAY=-1SU;BYMONTH=3
+        END:DAYLIGHT
+        BEGIN:STANDARD
+        TZOFFSETFROM:+0200
+        TZOFFSETTO:+0100
+        TZNAME:CET
+        DTSTART:$start
+        RRULE:FREQ=YEARLY;BYDAY=-1SU;BYMONTH=10
+        END:STANDARD
+        END:VTIMEZONE
+        BEGIN:VEVENT
+        CREATED:$createAt
+        LAST-MODIFIED:20140403T091044Z
+        DTSTAMP:20140416T091044Z
+        UID:$this->uid
+        SUMMARY:$this->summary
+        DTSTART;TZID=$this->timeZoneID:$start
+        DTEND;TZID=$this->timeZoneID:$end
+        LOCATION:$this->location
+        DESCRIPTION:$this->description
+        END:VEVENT
+        END:VCALENDAR
+        EOD;
+    }
+
+    public static function formatDate(string $mDate){
+
+        $date = new DateTime($mDate);
+
+        // Convertir l'heure en UTC (si nécessaire)
+        $date->setTimezone(new DateTimeZone('UTC'));
+
+        // Formater la date et l'heure au format iCalendar (ISO 8601)
+        $formattedDate = $date->format('Ymd\THis\Z');
+
+        return $formattedDate; // Affiche quelque chose comme 20240809T101245Z
+    }
+
+
+    /**
      * Get the value of description
      *
      * @return string
@@ -257,66 +315,4 @@ class EventDto{
 
         return $this;
     }
-
-
-
-    /**
-     * @return string
-     */
-    public function __toString(): string
-    {
-        $start = self::formatDate($this->dateStart);
-        $end = self::formatDate($this->dateEnd);
-        $createAt = self::formatDate($this->createAt);
-
-        return <<<EOD
-        BEGIN:VCALENDAR
-        PRODID:-//SomeExampleStuff//EN
-        VERSION:2.0
-        BEGIN:VTIMEZONE
-        TZID:$this->timeZoneID
-        X-LIC-LOCATION:$this->location
-        BEGIN:DAYLIGHT
-        TZOFFSETFROM:+0100
-        TZOFFSETTO:+0200
-        TZNAME:CEST
-        DTSTART:$start
-        RRULE:FREQ=YEARLY;BYDAY=-1SU;BYMONTH=3
-        END:DAYLIGHT
-        BEGIN:STANDARD
-        TZOFFSETFROM:+0200
-        TZOFFSETTO:+0100
-        TZNAME:CET
-        DTSTART:$start
-        RRULE:FREQ=YEARLY;BYDAY=-1SU;BYMONTH=10
-        END:STANDARD
-        END:VTIMEZONE
-        BEGIN:VEVENT
-        CREATED:$createAt
-        LAST-MODIFIED:20140403T091044Z
-        DTSTAMP:20140416T091044Z
-        UID:$this->uid
-        SUMMARY:$this->summary
-        DTSTART;TZID=$this->timeZoneID:$start
-        DTEND;TZID=$this->timeZoneID:$end
-        LOCATION:$this->location
-        DESCRIPTION:$this->description
-        END:VEVENT
-        END:VCALENDAR
-        EOD;
-    }
-
-    public static function formatDate(string $mDate){
-
-        $date = new DateTime($mDate);
-
-        // Convertir l'heure en UTC (si nécessaire)
-        $date->setTimezone(new DateTimeZone('UTC'));
-
-        // Formater la date et l'heure au format iCalendar (ISO 8601)
-        $formattedDate = $date->format('Ymd\THis\Z');
-
-        return $formattedDate; // Affiche quelque chose comme 20240809T101245Z
-    }
-
 }
