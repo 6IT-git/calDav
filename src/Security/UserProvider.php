@@ -2,6 +2,7 @@
 
 namespace App\Security;
 
+use App\Plateform\PlateformUserInterface;
 use Exception;
 use App\Security\User;
 use Firebase\JWT\JWT;
@@ -18,7 +19,8 @@ class UserProvider implements UserProviderInterface, PasswordUpgraderInterface
 {
     private $parameterBag;
 
-    public function __construct(ParameterBagInterface $parameterBag){
+    public function __construct(ParameterBagInterface $parameterBag)
+    {
         $this->parameterBag = $parameterBag;
     }
 
@@ -33,19 +35,26 @@ class UserProvider implements UserProviderInterface, PasswordUpgraderInterface
      */
     public function loadUserByIdentifier($identifier): UserInterface
     {
-        try{
+        try {
             $tmp = JWT::decode(
-                $identifier, 
+                $identifier,
                 new Key($this->parameterBag->get('jwt.api.key'), $this->parameterBag->get('jwt.encoder'))
             );
+
+            // Convertir stdClass en ClassA
+            $json = json_encode($tmp->credentials);
+
+            /** @var PlateformUserInterface */
+            $credentials = json_decode($json, false, 512, JSON_THROW_ON_ERROR, '\App\Plateform\Platforms\GoogleUser');
 
             return (new User())
                 ->setUsername($tmp->username)
                 ->setPassword($tmp->password)
                 ->setCalCollectionName($tmp->calendar_name)
+                ->setCredentials($credentials)
                 ->setApiToken($identifier);
-        }
-        catch(Exception $e){
+
+        } catch (Exception $e) {
             throw new UserNotFoundException($e->getMessage());
         }
     }
@@ -77,7 +86,7 @@ class UserProvider implements UserProviderInterface, PasswordUpgraderInterface
 
         // Return a User object after making sure its data is "fresh".
         // Or throw a UsernameNotFoundException if the user no longer exists.
-        throw new \Exception('TODO: fill in refreshUser() inside '.__FILE__);
+        throw new \Exception('TODO: fill in refreshUser() inside ' . __FILE__);
     }
 
     /**

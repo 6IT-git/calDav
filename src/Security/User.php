@@ -2,6 +2,7 @@
 
 namespace App\Security;
 
+use App\Plateform\PlateformUserInterface;
 use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
 use Symfony\Component\Security\Core\User\UserInterface;
 use Symfony\Component\Validator\Constraints as Assert;
@@ -11,7 +12,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     /**
      * @var string
      */
-    private string $username;
+    private string $username = '';
 
     /**
      * @var list<string> The user roles
@@ -21,19 +22,21 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     /**
      * @var string The hashed password
      */
-     #[Assert\NotNull]
-     #[Assert\NotBlank]
-    private $password;
+    #[Assert\NotNull]
+    #[Assert\NotBlank]
+    private $password = '';
 
     /**
      * @var string The name of user calendar collection
      */
-    private string $calCollectionName;
+    private string $calCollectionName = '';
 
     /**
      * @var string
      */
     private string $apiToken;
+
+    private PlateformUserInterface $credentials;
 
     /**
      * @return string|null
@@ -115,8 +118,8 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     /**
      * Get the value of apiToken
      * @return  string
-     */ 
-    public function getApiToken():string
+     */
+    public function getApiToken(): string
     {
         return $this->apiToken;
     }
@@ -125,8 +128,8 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
      * Set the value of apiToken
      * @param  string  $apiToken
      * @return  self
-     */ 
-    public function setApiToken(?string $apiToken):self
+     */
+    public function setApiToken(?string $apiToken): self
     {
         $this->apiToken = $apiToken;
 
@@ -137,8 +140,8 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
      * Get the name of user calendar collection
      *
      * @return  string
-     */ 
-    public function getCalCollectionName():string
+     */
+    public function getCalCollectionName(): string
     {
         return $this->calCollectionName;
     }
@@ -149,9 +152,32 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
      * @param string|null $calCollectionName
      * @return self
      */
-    public function setCalCollectionName(?string $calCollectionName):self
+    public function setCalCollectionName(?string $calCollectionName): self
     {
         $this->calCollectionName = $calCollectionName;
+
+        return $this;
+    }
+
+    /**
+     * Get the value of credentials
+     *
+     * @return PlateformUserInterface
+     */
+    public function getCredentials(): PlateformUserInterface
+    {
+        return $this->credentials;
+    }
+
+    /**
+     * Undocumented function
+     *
+     * @param PlateformUserInterface $credentials
+     * @return self
+     */
+    public function setCredentials(PlateformUserInterface $credentials): self
+    {
+        $this->credentials = $credentials;
 
         return $this;
     }

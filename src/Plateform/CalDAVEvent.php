@@ -1,11 +1,11 @@
 <?php
-namespace App\Entity;
+namespace App\Plateform;
 
 use DateTime;
 use DateTimeZone;
 use Symfony\Component\Validator\Constraints as Assert;
 
-class EventDto{
+class CalDAVEvent{
 
     const DEFAULT_TIME_ZONE = 'Europe/Berlin';
 
@@ -37,8 +37,6 @@ class EventDto{
     private string $location;
 
     private string $rrule;
-
-    
 
     #[Assert\DateTime]
     private string $createAt;

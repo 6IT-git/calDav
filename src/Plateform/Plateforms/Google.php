@@ -2,12 +2,41 @@
 
 namespace App\Plateform\Plateforms;
 
+use stdClass;
+use CalDAVObject;
 use App\HttpTools;
+use om\IcalParser;
 use App\Security\User;
 use App\Entity\EventDto;
+use Sabre\VObject\Reader;
 use App\Plateform\Plateform;
+use App\Plateform\CalDAVEvent;
+use App\Plateform\PlateformUserInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
+
+
+class GoogleUser implements PlateformUserInterface{
+    
+    private string $token;
+
+    public function setToken(string $token): self
+    {
+        $this->token = $token;
+
+        return $this;
+    }
+
+    public function getToken():string
+    {
+        return $this->token;
+    }
+
+    public function __toString(): string
+    {
+        return $this->token;
+    }
+}
 
 class Google extends Plateform
 {
@@ -21,36 +50,30 @@ class Google extends Plateform
         $this->certPath = $parameter->get('certificate.path');
     }
 
-    /**
-     * Undocumented function
-     *
-     * @param string $apitoken
-     * @return User
-     */
-    public function kokoko(string $password): User
+    public function kokokoo(Request $request): PlateformUserInterface
     {
-        return (new User())
-            ->setUsername('goolge')
-            ->setPassword($password)
-            ->setCalCollectionName('google');
+        /**@var GoogleUser $user */
+        $user = (new GoogleUser())
+            ->setToken($request->request->get('token'));
+
+        return $user;
     }
 
-    /**
-     * Undocumented function
-     *
-     * @param Request $request
-     * @return User
-     */
-    public function login(Request $request): User
+    public function calendars(PlateformUserInterface $user): array
     {
-        $userDto = (new User())
-            ->setUsername('goolge')
-            ->setPassword($request->request->get('token'))
-            ->setCalCollectionName('google');
+        /** @var GoogleUser */
+        $user = $user;
 
-        return $userDto;
+        // dd($user->getToken());
+
+        $calendars = (new HttpTools($this->srvUrl))
+            ->get('users/me/calendarList', [], [
+                'Authorization' => "Bearer " . $user->getToken()
+            ])
+            ->json();
+
+        return $calendars;
     }
-
 
     /**
      * Undocumented function
@@ -66,15 +89,12 @@ class Google extends Plateform
             ])
             ->json();
 
-
-        // Get all calandars on server
-        /* $calendars = (new HttpTools('https://www.googleapis.com/calendar/v3/'))
-            ->get('users/me/calendarList', [], [
-                'Authorization' => "Bearer " . $user->getPassword()
-            ])
-            ->json(); */
-
         return $calendars;
+    }
+
+    public function events(PlateformUserInterface $user): array
+    {
+        return [];
     }
 
     /**
@@ -91,15 +111,45 @@ class Google extends Plateform
                 "Content-Type" => "application/json",
                 'Authorization' => "Bearer " . $password
             ])
-            ->brut();
+            ->brut()
+            ->getBody();
 
-        dd($events->getBody()->json());
-
-        return [];
+        return $this->parse((string)$events);
     }
 
-    public function addEvent(string $username, string $password, string $calID, EventDto $event): EventDto
+    /**
+     * Undocumented function
+     *
+     * @param PlateformUserInterface $user
+     * @param CalDAVEvent $event
+     * @return CalDAVEvent
+     */
+    public function createEvent(PlateformUserInterface $user, CalDAVEvent $event):CalDAVEvent
     {
-        return new EventDto();
+        return new CalDAVEvent();
+    }
+
+    private static function parse($icalendarData): array
+    {
+        $vcalendar = Reader::read($icalendarData);
+
+        $results = [];
+
+        foreach ($vcalendar->VEVENT as $event) {
+
+            // $event = $tmp->serialize();
+
+            $results[] = (new EventDto())
+                ->setSummary($event->SUMMARY)
+                ->setDescription($event->DESCRIPTION)
+                ->setLocation($event->LOCATION)
+                ->setDateStart($event->DTSTART)
+                ->setDateEnd($event->DTEND)
+                ->setTimeZoneID($vcalendar->VTIMEZONE->TZID)
+                ->setRrule($event->RRULE)
+                ->setUid($event->UID);
+        }
+        // dd($result);
+        return $results;
     }
 }

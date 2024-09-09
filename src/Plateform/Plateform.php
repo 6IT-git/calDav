@@ -2,59 +2,54 @@
 
 namespace App\Plateform;
 
-use App\Entity\EventDto;
 use InvalidArgumentException;
 use App\Plateform\Plateforms\Baikal;
 use App\Plateform\Plateforms\Google;
-use App\Security\User;
-use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
+use App\Plateform\PlateformUserInterface;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
 
 abstract class Plateform
 {
 
     protected string $srvUrl;
 
+
     /**
      * Undocumented function
      *
-     * @param string $password
-     * @return User
-     */
-    abstract public function kokoko(string $password): User;
-
-    /**
      * @param Request $request
-     * @return User
+     * @return PlateformUserInterface
      */
-    abstract public function login(Request $request): User;
+    abstract public function kokokoo(Request $request): PlateformUserInterface;
 
-    /**
-     * @param string $password
-     * @return array
-     */
-    abstract public function getCalendars(string $password): array;
-
- 
     /**
      * Undocumented function
      *
-     * @param string $idCal
-     * @param string $password
+     * @param PlateformUserInterface $user
      * @return array
      */
-    abstract public function getEvents(string $idCal, string $password): array;
+    abstract public function calendars(PlateformUserInterface $user): array;
 
     /**
-     * @param string $username
-     * @param string $password
-     * @param string $calID
-     * @param EventDto $event
-     * @return string
+     * Undocumented function
+     *
+     * @param PlateformUserInterface $user
+     * @return array
      */
-    abstract public function addEvent(string $username, string $password, string $calID, EventDto $event): EventDto;
+    abstract public function events(PlateformUserInterface $user): array;
 
-    private static array $plateformMap = [
+    /**
+     * Undocumented function
+     *
+     * @param PlateformUserInterface $user
+     * @param CalDAVEvent $event
+     * @return CalDAVEvent
+     */
+    abstract public function createEvent(PlateformUserInterface $user, CalDAVEvent $event):CalDAVEvent;
+
+
+    private static array $_plateformMap = [
         'baikal' => Baikal::class,
         'google' => Google::class,
         // 'zimbra' => Zimbra::class,
@@ -66,11 +61,11 @@ abstract class Plateform
      */
     public static function create(string $type, ParameterBagInterface $params): self
     {
-        if (!array_key_exists($type, self::$plateformMap)) {
+        if (!array_key_exists($type, self::$_plateformMap)) {
             throw new InvalidArgumentException("Invalid plateform type: $type");
         }
 
-        $className = self::$plateformMap[$type];
+        $className = self::$_plateformMap[$type];
         return new $className($params);
     }
 
@@ -80,12 +75,11 @@ abstract class Plateform
      */
     public function getInstance(string $type): self
     {
-        if (!array_key_exists($type, self::$plateformMap)) {
-            throw new InvalidArgumentException("Invalid product type: $type");
+        if (!array_key_exists($type, self::$_plateformMap)) {
+            throw new InvalidArgumentException("Invalid plateform type: $type");
         }
 
-        $className = self::$plateformMap[$type];
+        $className = self::$_plateformMap[$type];
         return new $className();
     }
-
 }

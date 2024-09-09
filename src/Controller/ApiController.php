@@ -5,7 +5,10 @@ namespace App\Controller;
 use App\JwtTool;
 use App\HttpTools;
 use App\Entity\EventDto;
+use App\Plateform\CalDAVEvent;
 use App\Plateform\Plateform;
+use App\Plateform\Plateforms\Google;
+use App\Security\User;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
@@ -25,7 +28,6 @@ class ApiController extends AbstractController
     {
         $this->params = $params;
     }
-
 
     #[Route('/google', name: 'google_code', methods: ['GET'])]
     public function index(): JsonResponse
@@ -62,17 +64,16 @@ class ApiController extends AbstractController
     {
         $plateformInstance = Plateform::create($plateform, $this->params);
 
-        $userDto = $plateformInstance->login($request);
+        $credentials = $plateformInstance->kokokoo($request);
+        $user = (new User)
+            ->setCredentials($credentials);
 
         // gen jwt token
-        $jwt = JwtTool::encode($this->getParameter('jwt.api.key'), $userDto);
+        $jwt = JwtTool::encode($this->getParameter('jwt.api.key'), $user);
 
         return $this->json([
             'token' => $jwt,
-            'calendars' => $plateformInstance->getCalendars(
-                $userDto->getPassword(),
-                $userDto->getUsername()
-            ),
+            'calendars' => $plateformInstance->calendars($credentials)
         ], Response::HTTP_OK);
     }
 
@@ -80,12 +81,13 @@ class ApiController extends AbstractController
     #[Route('/{plateform}/calendars', name: 'api_calendars', methods: ['GET'])]
     public function getCalendars(string $plateform): JsonResponse
     {
-        /** @var App\Security\User */
+        /** @var \App\Security\User */
         $user = $this->getUser();
 
         $plateformInstance = Plateform::create($plateform, $this->params);
 
-        $calendars = $plateformInstance->getCalendars($user->getPassword());
+        // $calendars = $plateformInstance->getCalendars($user->getPassword());
+        $calendars = $plateformInstance->events($user->getCredentials());
 
         return $this->json([
             'token' => 'token',
@@ -97,7 +99,7 @@ class ApiController extends AbstractController
     #[Route('/{plateform}/events/{calID}/{limit}/{offset}', name: 'api_events', methods: ['GET'])]
     public function getEvents(string $plateform, string $calID, int $limit, int $offset = 0): JsonResponse
     {
-        /** @var App\Security\User */
+        /** @var \App\Security\User */
         $user = $this->getUser();
 
         if ($limit <= $offset)
@@ -105,7 +107,8 @@ class ApiController extends AbstractController
 
         $plateformInstance = Plateform::create($plateform, $this->params);
 
-        $events = $plateformInstance->getEvents($calID, $user->getPassword(), $user->getUsername(), $limit, $offset);
+        // $events = $plateformInstance->getEvents($calID, $user->getPassword(), $user->getUsername(), $limit, $offset);
+        $events = $plateformInstance->events($user->getCredentials());
 
         return $this->json([
             'cal_id' => $calID,
@@ -121,7 +124,7 @@ class ApiController extends AbstractController
         /** @var App\Security\User */
         $user = $this->getUser();
 
-        $event = (new EventDto())
+        $event = (new CalDAVEvent())
             ->setDateStart($request->request->get('date_start'))
             ->setDateEnd($request->request->get('date_end'))
             ->setSummary($request->request->get('summary', 'ginov test list event'));
@@ -137,7 +140,7 @@ class ApiController extends AbstractController
             return $this->json('Invalide date', Response::HTTP_BAD_REQUEST);
             
         $plateformInstance = Plateform::create($plateform, $this->params);
-        $newEventOnServer = $plateformInstance->addEvent($user->getUsername(), $user->getPassword(), $calID, $event);
+        $newEventOnServer = $plateformInstance->createEvent($user->getCredentials(), $event);
 
         return $this->json([
             'cal_id' => $calID,
