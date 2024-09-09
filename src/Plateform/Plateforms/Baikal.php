@@ -149,10 +149,10 @@ class Baikal extends Plateform
     /**
      * Undocumented function
      *
-     * @param PlateformUserInterface $user
+     * @param string $credentials
      * @return array
      */
-    public function calendars(PlateformUserInterface $user): array
+    public function calendars(string $credentials): array
     {
         return [];
     }
@@ -185,10 +185,10 @@ class Baikal extends Plateform
     /**
      * Undocumented function
      *
-     * @param PlateformUserInterface $user
+     * @param string $credentials
      * @return array
      */
-    public function events(PlateformUserInterface $user): array
+    public function events(string $credentials, string $calID): array
     {
         return [];
     }
@@ -218,14 +218,17 @@ class Baikal extends Plateform
     /**
      * Undocumented function
      *
-     * @param PlateformUserInterface $user
+     * @param string $credentials
      * @param CalDAVEvent $event
      * @return CalDAVEvent
      */
-    public function createEvent(PlateformUserInterface $user, CalDAVEvent $event): CalDAVEvent
+    public function createEvent(string $credentials, CalDAVEvent $event): CalDAVEvent
     {
         return new CalDAVEvent();
     }
+    
+    public function createCalendar(string $credentials, string $name, string $description, string $displayName = '')
+    {}
 
     /**
      * Undocumented function

@@ -7,7 +7,7 @@
         "php": ">=8.1",
         "ext-ctype": "*",
         "ext-iconv": "*",
-        "enqueue/enqueue-bundle": "*",
+        "enqueue/enqueue-bundle": "^0.10.19",
         "enqueue/fs": "*",
         "enqueue/rdkafka": "^0.10.20",
         "firebase/php-jwt": "^6.10",

@@ -36,7 +36,8 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
      */
     private string $apiToken;
 
-    private PlateformUserInterface $credentials;
+    // private PlateformUserInterface $credentials;
+    private string $credentials;
 
     /**
      * @return string|null
@@ -162,9 +163,9 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     /**
      * Get the value of credentials
      *
-     * @return PlateformUserInterface
+     * @return string
      */
-    public function getCredentials(): PlateformUserInterface
+    public function getCredentials(): string
     {
         return $this->credentials;
     }
@@ -172,10 +173,10 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     /**
      * Undocumented function
      *
-     * @param PlateformUserInterface $credentials
+     * @param string $credentials
      * @return self
      */
-    public function setCredentials(PlateformUserInterface $credentials): self
+    public function setCredentials(string $credentials): self
     {
         $this->credentials = $credentials;
 

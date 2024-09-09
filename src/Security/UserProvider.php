@@ -51,7 +51,7 @@ class UserProvider implements UserProviderInterface, PasswordUpgraderInterface
                 ->setUsername($tmp->username)
                 ->setPassword($tmp->password)
                 ->setCalCollectionName($tmp->calendar_name)
-                ->setCredentials($credentials)
+                ->setCredentials($tmp->credentials)
                 ->setApiToken($identifier);
 
         } catch (Exception $e) {

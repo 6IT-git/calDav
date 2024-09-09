@@ -59,57 +59,24 @@ class Google extends Plateform
         return $user;
     }
 
-    public function calendars(PlateformUserInterface $user): array
+    public function calendars(string $credentials): array
     {
-        /** @var GoogleUser */
-        $user = $user;
-
-        // dd($user->getToken());
 
         $calendars = (new HttpTools($this->srvUrl))
             ->get('users/me/calendarList', [], [
-                'Authorization' => "Bearer " . $user->getToken()
+                'Authorization' => "Bearer " . $credentials
             ])
             ->json();
 
         return $calendars;
     }
 
-    /**
-     * Undocumented function
-     *
-     * @param string $password
-     * @return array
-     */
-    public function getCalendars(string $password): array
-    {
-        $calendars = (new HttpTools($this->srvUrl))
-            ->get('users/me/calendarList', [], [
-                'Authorization' => "Bearer " . $password
-            ])
-            ->json();
-
-        return $calendars;
-    }
-
-    public function events(PlateformUserInterface $user): array
-    {
-        return [];
-    }
-
-    /**
-     * Undocumented function
-     *
-     * @param string $idCal
-     * @param string $password
-     * @return array
-     */
-    public function getEvents(string $idCal, string $password): array
+    public function events(string $credentials, string $idCal): array
     {
         $events = (new HttpTools($this->calDAVUrl, $this->certPath))
             ->get("$idCal/events", [], [
                 "Content-Type" => "application/json",
-                'Authorization' => "Bearer " . $password
+                'Authorization' => "Bearer " . $credentials
             ])
             ->brut()
             ->getBody();
@@ -120,14 +87,19 @@ class Google extends Plateform
     /**
      * Undocumented function
      *
-     * @param PlateformUserInterface $user
+     * @param string $user
      * @param CalDAVEvent $event
      * @return CalDAVEvent
      */
-    public function createEvent(PlateformUserInterface $user, CalDAVEvent $event):CalDAVEvent
+    public function createEvent(string $credentails, CalDAVEvent $event):CalDAVEvent
     {
         return new CalDAVEvent();
     }
+
+    public function createCalendar(string $credentials, string $name, string $description, string $displayName = '')
+    {
+        
+    }    
 
     private static function parse($icalendarData): array
     {
@@ -136,8 +108,6 @@ class Google extends Plateform
         $results = [];
 
         foreach ($vcalendar->VEVENT as $event) {
-
-            // $event = $tmp->serialize();
 
             $results[] = (new EventDto())
                 ->setSummary($event->SUMMARY)
@@ -149,7 +119,6 @@ class Google extends Plateform
                 ->setRrule($event->RRULE)
                 ->setUid($event->UID);
         }
-        // dd($result);
         return $results;
     }
 }
