@@ -12,11 +12,12 @@ use App\Plateform\Entity\CalDAVCalendar;
 use Sabre\VObject\Reader;
 use App\Plateform\Plateform;
 use App\Plateform\Entity\CalDAVEvent;
-use App\Plateform\Entity\calendarCalDAV;
+use App\Plateform\Entity\CalendarCalDAV;
 use App\Plateform\Entity\EventCalDAV;
 use App\Plateform\PlateformUserInterface;
 use CalDAVCalendar as GlobalCalDAVCalendar;
 use Symfony\Component\HttpFoundation\Request;
+use Sabre\HTTP\Request as Http;
 use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
 
 
@@ -63,12 +64,12 @@ class Google extends Plateform
         $this->clientID = $parameters->get('google.redirect.uri'); */
     }
 
-    public function getOAuthUrl():string
+    public function getOAuthUrl(): string
     {
-       return "https://accounts.google.com/o/oauth2/v2/auth?scope=" .
-       $this->parameters->get('google.scope') . "&access_type=offline&include_granted_scopes=true&response_type=code&redirect_uri=" .
-       $this->parameters->get('google.redirect.uri') . "&client_id=" .
-       $this->parameters->get('google.client.id');
+        return "https://accounts.google.com/o/oauth2/v2/auth?scope=" .
+            $this->parameters->get('google.scope') . "&access_type=offline&include_granted_scopes=true&response_type=code&redirect_uri=" .
+            $this->parameters->get('google.redirect.uri') . "&client_id=" .
+            $this->parameters->get('google.client.id');
     }
 
     public function kokokoo(Request $request): PlateformUserInterface
@@ -80,18 +81,26 @@ class Google extends Plateform
         return $user;
     }
 
-    public function calendars(string $credentials): array
-    {
-        $calendars = (new HttpTools($this->srvUrl))
-            ->get('users/me/calendarList', [], [
-                'Authorization' => "Bearer " . $credentials
-            ])
-            ->json();
-
-        return $calendars;
-    }
-    
     public function calendar(string $credentials, string $calID): CalendarCalDAV
+    {
+        $client = new \Sabre\HTTP\Client();
+        
+        $client->addCurlSetting(CURLOPT_SSL_VERIFYHOST, 0);
+        $client->addCurlSetting(CURLOPT_SSL_VERIFYPEER, 0);
+
+        $request = new Http('GET', $this->srvUrl."calendars/$calID", [
+            'Authorization' => 'Bearer ' . $credentials
+        ]);
+        
+        $response = $client->send($request);
+
+        $json = json_decode($response->getBodyAsString(), true);
+        dd($json);
+
+        return (new CalendarCalDAV($calID));
+    }
+
+    public function xxcalendar(string $credentials, string $calID): CalendarCalDAV
     {
         return (new HttpTools($this->srvUrl))
             ->get($calID, [], [
@@ -102,11 +111,39 @@ class Google extends Plateform
         return $calendars;
     }
 
-    public function createCalendar(string $credentials, string $calID, string $description, string $displayName = '') 
-    {}
+    public function calendars(string $credentials): array
+    {
+        $client = new \Sabre\HTTP\Client();
+        
+        $client->addCurlSetting(CURLOPT_SSL_VERIFYHOST, 0);
+        $client->addCurlSetting(CURLOPT_SSL_VERIFYPEER, 0);
 
-    public function deleteCalendar(string $credentials, string $calID) 
-    {}
+        $request = new Http('GET', $this->srvUrl.'users/me/calendarList', [
+            'Authorization' => 'Bearer ' . $credentials
+        ]);
+        
+        $response = $client->send($request);
+
+        /** @var array */
+        $json = json_decode($response->getBodyAsString(), true);
+
+        return $json;
+    }
+
+    public function xxcalendars(string $credentials): array
+    {
+        $calendars = (new HttpTools($this->srvUrl))
+            ->get('users/me/calendarList', [], [
+                'Authorization' => "Bearer " . $credentials
+            ])
+            ->json();
+
+        return $calendars;
+    }
+
+    public function createCalendar(string $credentials, string $calID, string $description, string $displayName = '') {}
+
+    public function deleteCalendar(string $credentials, string $calID) {}
 
     public function events(string $credentials, string $idCal): array
     {

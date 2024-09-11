@@ -29,8 +29,6 @@ abstract class Plateform implements PlateformInterface
             throw new InvalidArgumentException("Invalid plateform type: $type");
         }
 
-        return new Zimbra($params);
-
         $className = self::$_plateformMap[$type];
         return new $className($params);
     }

@@ -390,6 +390,8 @@ class Zimbra extends Plateform
    {
       $tmp = explode(';', $credentials);
 
+      dd($tmp);
+
       return (\count($tmp) == 3)
          ? (new ZimbraUser())
             ->setUsername($tmp[0])

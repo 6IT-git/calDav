@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "1666fcf1c28b91afb3e4b719aba0d57d",
+    "content-hash": "fd976cf139fb346388d5773036c0b40c",
     "packages": [
         {
             "name": "brick/math",
@@ -915,52 +915,6 @@
                 }
             ],
             "time": "2024-07-18T11:15:46+00:00"
-        },
-        {
-            "name": "makasim/temp-file",
-            "version": "0.2.0",
-            "source": {
-                "type": "git",
-                "url": "https://github.com/makasim/TempFile.git",
-                "reference": "e9cfbfc61a23044aeb2fe0a3db49aeec2f84ca27"
-            },
-            "dist": {
-                "type": "zip",
-                "url": "https://api.github.com/repos/makasim/TempFile/zipball/e9cfbfc61a23044aeb2fe0a3db49aeec2f84ca27",
-                "reference": "e9cfbfc61a23044aeb2fe0a3db49aeec2f84ca27",
-                "shasum": ""
-            },
-            "require": {
-                "php": ">=5.3.2"
-            },
-            "type": "library",
-            "autoload": {
-                "psr-0": {
-                    "Makasim": "src/"
-                }
-            },
-            "notification-url": "https://packagist.org/downloads/",
-            "license": [
-                "MIT"
-            ],
-            "authors": [
-                {
-                    "name": "Maksim Kotlyar",
-                    "email": "kotlyar.maksim@gmail.com"
-                }
-            ],
-            "description": "Temp file object",
-            "homepage": "https://github.com/makasim/TempFile",
-            "keywords": [
-                "file",
-                "temp",
-                "temp file"
-            ],
-            "support": {
-                "issues": "https://github.com/makasim/TempFile/issues",
-                "source": "https://github.com/makasim/TempFile/tree/master"
-            },
-            "time": "2013-07-12T06:09:04+00:00"
         },
         {
             "name": "om/icalparser",

@@ -6,6 +6,7 @@ use App\JwtTool;
 use App\HttpTools;
 use App\Entity\EventDto;
 use App\Plateform\Entity\CalDAVEvent;
+use App\Plateform\Entity\EventCalDAV;
 use App\Plateform\Plateform;
 use App\Plateform\Plateforms\Google;
 use App\Plateform\Plateforms\GoogleUser;
@@ -35,8 +36,6 @@ class ApiController extends AbstractController
     {
         /** @var Google */
         $plateformInstance = Plateform::create('google', $this->params);
-
-        dd($plateformInstance);
 
         return $this->json([
             'url' => urldecode($plateformInstance->getOAuthUrl()),
@@ -80,6 +79,21 @@ class ApiController extends AbstractController
     }
 
     #[IsGranted('ROLE_USER', message: 'Acces denied', statusCode: Response::HTTP_UNAUTHORIZED)]
+    #[Route('/{plateform}/calendar/{cal_id}', name: 'api_calendar', methods: ['GET'])]
+    public function getCalendar(string $plateform, string $cal_id): JsonResponse
+    {
+        /** @var \App\Security\User */
+        $user = $this->getUser();
+
+        $plateformInstance = Plateform::create($plateform, $this->params);
+
+        return $this->json([
+            'token' => 'token',
+            'calendars' => $plateformInstance->calendar($user->getCredentials(), $cal_id)
+        ], Response::HTTP_OK);
+    }
+
+    #[IsGranted('ROLE_USER', message: 'Acces denied', statusCode: Response::HTTP_UNAUTHORIZED)]
     #[Route('/{plateform}/calendars', name: 'api_calendars', methods: ['GET'])]
     public function getCalendars(string $plateform): JsonResponse
     {
@@ -88,11 +102,9 @@ class ApiController extends AbstractController
 
         $plateformInstance = Plateform::create($plateform, $this->params);
 
-        $calendars = $plateformInstance->calendars($user->getCredentials());
-
         return $this->json([
             'token' => 'token',
-            'calendars' => $calendars
+            'calendars' => $plateformInstance->calendars($user->getCredentials())
         ], Response::HTTP_OK);
     }
 
@@ -124,7 +136,7 @@ class ApiController extends AbstractController
         /** @var App\Security\User */
         $user = $this->getUser();
 
-        $event = (new CalDAVEvent())
+        $event = (new EventCalDAV())
             ->setDateStart($request->request->get('date_start'))
             ->setDateEnd($request->request->get('date_end'))
             ->setSummary($request->request->get('summary', 'ginov test list event'));
