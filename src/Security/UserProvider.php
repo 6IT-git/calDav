@@ -41,12 +41,6 @@ class UserProvider implements UserProviderInterface, PasswordUpgraderInterface
                 new Key($this->parameterBag->get('jwt.api.key'), $this->parameterBag->get('jwt.encoder'))
             );
 
-            // Convertir stdClass en ClassA
-            $json = json_encode($tmp->credentials);
-
-            /** @var PlateformUserInterface */
-            $credentials = json_decode($json, false, 512, JSON_THROW_ON_ERROR, '\App\Plateform\Platforms\GoogleUser');
-
             return (new User())
                 ->setUsername($tmp->username)
                 ->setPassword($tmp->password)

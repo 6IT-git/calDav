@@ -259,7 +259,6 @@ class EventDto{
     }
 
 
-
     /**
      * @return string
      */
@@ -319,76 +318,4 @@ class EventDto{
         return $formattedDate; // Affiche quelque chose comme 20240809T101245Z
     }
 
-
-    /**
-     * Get the value of description
-     *
-     * @return string
-     */
-    public function getDescription(): string
-    {
-        return $this->description;
-    }
-
-    /**
-     * Set the value of description
-     *
-     * @param string $description
-     *
-     * @return self
-     */
-    public function setDescription(string $description): self
-    {
-        $this->description = $description;
-
-        return $this;
-    }
-
-    /**
-     * Get the value of location
-     *
-     * @return string
-     */
-    public function getLocation(): string
-    {
-        return $this->location;
-    }
-
-    /**
-     * Set the value of location
-     *
-     * @param string $location
-     *
-     * @return self
-     */
-    public function setLocation(string $location): self
-    {
-        $this->location = $location;
-
-        return $this;
-    }
-
-    /**
-     * Get the value of rrule
-     *
-     * @return string
-     */
-    public function getRrule(): string
-    {
-        return $this->rrule;
-    }
-
-    /**
-     * Set the value of rrule
-     *
-     * @param string $rrule
-     *
-     * @return self
-     */
-    public function setRrule(string $rrule): self
-    {
-        $this->rrule = $rrule;
-
-        return $this;
-    }
 }

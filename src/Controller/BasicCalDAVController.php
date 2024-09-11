@@ -101,7 +101,7 @@ class BasicCalDAVController extends AbstractController
     }
 
     #[IsGranted('ROLE_USER', message: 'access denied', statusCode: Response::HTTP_UNAUTHORIZED)]
-    #[Route('/add/{calID}', 'baikal_add', methods: ['POST'])]
+    #[Route('/add___/{calID}', 'baikal_add', methods: ['POST'])]
     public function addEvent(
         string $calID,
         Request $request,
