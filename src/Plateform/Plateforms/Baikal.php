@@ -5,7 +5,9 @@ namespace App\Plateform\Plateforms;
 use App\Security\User;
 use SimpleCalDAVClient;
 use App\Entity\EventDto;
-use App\Plateform\CalDAVEvent;
+use App\Plateform\Entity\CalDAVEvent;
+use App\Plateform\Entity\CalendarCalDAV;
+use App\Plateform\Entity\EventCalDAV;
 use App\Plateform\Plateform;
 use App\Plateform\PlateformUserInterface;
 use Symfony\Component\HttpFoundation\Request;
@@ -104,14 +106,6 @@ class Baikal extends Plateform
         $this->srvUrl = $parameter->get('baikal.srv.url');
     }
 
-    public function kokoko(string $password, string $username = 'baikal', string $calID = 'baikal'): User
-    {
-        return (new User())
-            ->setUsername($username)
-            ->setPassword($password)
-            ->setCalCollectionName($calID);
-    }
-
     /**
      * Undocumented function
      *
@@ -129,21 +123,10 @@ class Baikal extends Plateform
         return $user;
     }
 
-
-    /**
-     * Login
-     * 
-     * @param Request $request
-     * @return User
-     */
-    public function login(Request $request): User
+    public function calendar(string $credentials, string $calID): CalendarCalDAV
     {
-        $userDto = (new User())
-            ->setUsername($request->request->get('username'))
-            ->setPassword($request->request->get('password'))
-            ->setCalCollectionName($request->request->get('cal_name'));
 
-        return $userDto;
+        return new CalendarCalDAV($calID);
     }
 
     /**
@@ -219,15 +202,17 @@ class Baikal extends Plateform
      * Undocumented function
      *
      * @param string $credentials
-     * @param CalDAVEvent $event
-     * @return CalDAVEvent
-     */
-    public function createEvent(string $credentials, CalDAVEvent $event): CalDAVEvent
+     * @param EventCalDAV $event
+     * @return EventCalDAV     */
+    public function createEvent(string $credentials, EventCalDAV $event): EventCalDAV
     {
-        return new CalDAVEvent();
+        return new EventCalDAV();
     }
     
-    public function createCalendar(string $credentials, string $name, string $description, string $displayName = '')
+    public function createCalendar(string $credentials, string $calID, string $description, string $displayName = '')
+    {}
+    
+    public function deleteCalendar(string $credentials, string $calID)
     {}
 
     /**
